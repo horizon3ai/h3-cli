@@ -1,0 +1,27 @@
+mutation m($op_template_name: String! = "Default 1 - Recommended", $op_name: String = "Pentest scheduled via API", $schedule_op_form: ScheduleOpFormInput = {}) { 
+    schedule_op_template(
+        op_template_name: $op_template_name,
+        op_name: $op_name,
+        schedule_op_form: $schedule_op_form
+    ) { 
+        op {
+            ...OpFragment
+        }
+    }
+}
+
+fragment OpFragment on Op {
+    op_id
+    op_name
+    op_state
+    op_type
+    scheduled_timestamp_iso
+    launched_timestamp_iso
+    completed_timestamp_iso
+    duration_hms
+    in_scope_hosts_count
+    confirmed_weaknesses_count
+    confirmed_credentials_count
+    nodezero_script_url
+}
+

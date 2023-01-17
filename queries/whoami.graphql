@@ -1,0 +1,18 @@
+query {
+    session_user_account {
+        ...UserAccountFragment
+    }
+}
+
+fragment UserAccountFragment on UserAccount {
+    uuid
+    client_account_uuid
+    prev_client_account_uuid
+    sign_in_type
+    company_name
+    email
+    name
+    user_role_id
+    client_account_access_level
+    last_signed_in_at
+}

@@ -1,0 +1,19 @@
+mutation m($op_id:String!) {
+    pause_op(op_id: $op_id) {
+        ...OpTabFragment
+    }
+}
+
+fragment OpTabFragment on OpTab {
+    op_id
+    op_name
+    op_state
+    scheduled_timestamp_iso
+    launched_timestamp_iso
+    completed_timestamp_iso
+    duration_hms
+    in_scope_hosts_count
+    confirmed_weaknesses_count
+    confirmed_credentials_count
+    nodezero_script_url
+}

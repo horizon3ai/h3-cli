@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# checks/sets these env vars:
+#
+# H3_CLI_PROFILES_DIR
+# H3_CLI_PROFILE
+# H3_API_KEY
+# H3_CLI_HOME
+# H3_AUTH_URL
+# H3_GQL_URL
+# H3_CLI_GQL_PATH
+#
+
+# pull in util fns
+source h3-utils
+
+# where profiles/creds are stored
+if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+    H3_CLI_PROFILES_DIR="$HOME/.h3"
+fi
+if [ ! -e "$H3_CLI_PROFILES_DIR" ]; then
+    echoerr "ERROR: h3 profile directory H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR does not exist. Please create and define a profile. See README for more info."
+    exit 1
+fi
+
+# check env
+if [ -z "$H3_API_KEY" ]; then
+    # check profile
+    if [ -z "$H3_CLI_PROFILE" ]; then
+        H3_CLI_PROFILE="default"
+    fi
+    profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+    if [ -e "$profile" ]; then
+        echolog "reading profile $profile ..."
+        source $profile
+    fi
+    if [ -z "$H3_API_KEY" ]; then
+        echoerr "H3_API_KEY environment variable required.  Must be exported to the shell or defined in $profile"
+        exit 1
+    fi
+fi
+
+if [ -z "$H3_CLI_HOME" ]; then
+    H3_CLI_HOME=`dirname $(dirname $(which h3))`
+    if [ -z "$H3_CLI_HOME" ]; then
+        echoerr "H3_CLI_HOME environment variable required.  Must be set to the full path of the h3-cli directory."
+        exit 1
+    fi
+fi
+if [ ! -e "$H3_CLI_HOME" ]; then 
+    echoerr "H3_CLI_HOME environment variable does not refer to an existing directory ($H3_CLI_HOME).  Must be set to the full path of the h3-cli directory."
+    exit 1
+fi
+
+if [ -z "$H3_AUTH_URL" ]; then
+    H3_AUTH_URL=https://api.horizon3ai.com/v1/auth
+fi
+
+if [ -z "$H3_GQL_URL" ]; then
+    H3_GQL_URL=https://api.horizon3ai.com/v1/graphql
+fi
+
+# allow users to define H3_CLI_GQL_PATH
+# always PRE-pend H3_CLI_HOME/queries
+prepend_gql_path="$H3_CLI_HOME/queries"
+if [ -e "$H3_CLI_HOME/queries-admin" ]; then
+    prepend_gql_path="$H3_CLI_HOME/queries-admin:$prepend_gql_path"
+fi
+
+if [ -z "$H3_CLI_GQL_PATH" ]; then
+    H3_CLI_GQL_PATH=$prepend_gql_path
+else
+    H3_CLI_GQL_PATH="$prepend_gql_path:$H3_CLI_GQL_PATH"
+fi
+

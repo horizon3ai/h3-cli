@@ -1,0 +1,14 @@
+query {
+    user_accounts {
+        ...UserAccountFragment
+    }
+}
+
+fragment UserAccountFragment on UserAccount {
+    uuid
+    email
+    name
+    user_role_id
+    sign_in_type
+    last_signed_in_at
+}

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+
+# writes message to stderr
+# usage: echoerr "the message"
+function echoerr { 
+    echo "[`date`] $@" 1>&2;   
+}
+ 
+
+# writes message to stderr 
+# usage: echolog "the message"
+function echolog { 
+    if [ "$H3_CLI_VERBOSE" = "1" ]; then
+        echo "[`date`] $@" 1>&2;   
+    fi
+}
+

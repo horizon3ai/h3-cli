@@ -1,0 +1,13 @@
+query {
+    agents {
+        ...AgentScalarFragment
+    }
+}
+  
+fragment AgentScalarFragment on Agent {
+    uuid
+    name
+    uname
+    last_heartbeat_at
+    row_created_at
+}

@@ -1,0 +1,40 @@
+query q($search: String = "", $page_num: Int = 1, $page_size: Int = 100) {
+    asset_groups_count(
+        page_input:{
+            text_search:$search
+        }
+    )
+    asset_groups_page(
+        page_input:{
+            page_num:$page_num,
+            page_size:$page_size,
+            text_search:$search
+            order_by:"last_ead_etl_completed_at"
+            sort_order:DESC
+        }
+    ) {
+        asset_groups {
+            ...AssetGroupFragment
+        }
+    }
+}
+
+fragment AssetGroupFragment on AssetGroup {
+    uuid
+    name
+    op_template {
+        schedule_op_form {
+            osint_domains
+            op_param_max_scope
+            git_accounts {
+                name 
+                source 
+            }
+            aws_account_ids
+        }
+    }
+    last_ead_etl_completed_at
+    created_at
+    updated_at
+    assets_count
+}

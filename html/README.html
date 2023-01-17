@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html  dir="ltr">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title></title>
+        <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+        <link rel="apple-touch-icon-precomposed" href="images/apple-touch-icon.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/2.26.4/css/uikit.gradient.css">
+
+        <!-- <link rel="stylesheet" href="style.css"> -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/style.css">
+        <link href="https://vjs.zencdn.net/5.4.4/video-js.css" rel="stylesheet" />
+        <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
+        <!-- <script src="uikit.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/uikit.js"></script>
+        <!-- <script src="scripts.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/scripts.js"></script>
+        <!-- <script src="jquery.sticky-kit.js "></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/jquery.sticky-kit.js"></script>
+
+        <meta name="generator" content="pandoc-uikit" />
+                        <title>README</title>
+        <style type="text/css">code{white-space: pre;}</style>
+                                                       
+    </head>
+
+    <body>
+
+
+        <div class="uk-container uk-container-center uk-margin-top uk-margin-large-bottom">
+
+            
+            <div class="uk-grid" data-uk-grid-margin >          
+                <div class="uk-width-medium-1-4">
+                    <div class="uk-overflow-container" data-uk-sticky="{top:25,media: 768}">
+                        <div class="uk-panel uk-panel-box menu-begin" >
+
+                                                        <ul>
+                                                        <li><a
+                                                        href="#h3-cli-cli-tool-for-the-horizon3.ai-api"
+                                                        id="toc-h3-cli-cli-tool-for-the-horizon3.ai-api">h3-cli:
+                                                        CLI tool for the
+                                                        Horizon3.ai
+                                                        API</a></li>
+                                                        <li><a
+                                                        href="#installation-and-initial-setup"
+                                                        id="toc-installation-and-initial-setup">Installation
+                                                        and initial
+                                                        setup</a>
+                                                        <ul>
+                                                        <li><a
+                                                        href="#obtain-an-api-key"
+                                                        id="toc-obtain-an-api-key">1.
+                                                        Obtain an API
+                                                        key</a></li>
+                                                        <li><a
+                                                        href="#install-this-git-repo"
+                                                        id="toc-install-this-git-repo">2.
+                                                        Install this git
+                                                        repo</a></li>
+                                                        <li><a
+                                                        href="#run-the-h3-cli-install-script"
+                                                        id="toc-run-the-h3-cli-install-script">3.
+                                                        Run the h3-cli
+                                                        install
+                                                        script</a></li>
+                                                        </ul></li>
+                                                        <li><a
+                                                        href="#getting-started"
+                                                        id="toc-getting-started">Getting
+                                                        started</a>
+                                                        <ul>
+                                                        <li><a
+                                                        href="#verify-connectivity-with-the-api"
+                                                        id="toc-verify-connectivity-with-the-api">1.
+                                                        Verify
+                                                        connectivity
+                                                        with the
+                                                        API</a></li>
+                                                        <li><a
+                                                        href="#query-the-list-of-pentests-in-your-account"
+                                                        id="toc-query-the-list-of-pentests-in-your-account">2.
+                                                        Query the list
+                                                        of pentests in
+                                                        your
+                                                        account</a></li>
+                                                        <li><a
+                                                        href="#query-a-specific-pentest-from-your-account"
+                                                        id="toc-query-a-specific-pentest-from-your-account">3.
+                                                        Query a specific
+                                                        pentest from
+                                                        your
+                                                        account</a></li>
+                                                        <li><a
+                                                        href="#schedule-a-pentest"
+                                                        id="toc-schedule-a-pentest">4.
+                                                        Schedule a
+                                                        pentest</a></li>
+                                                        <li><a
+                                                        href="#run-nodezero"
+                                                        id="toc-run-nodezero">5.
+                                                        Run
+                                                        NodeZero</a></li>
+                                                        <li><a
+                                                        href="#download-pentest-reports"
+                                                        id="toc-download-pentest-reports">6.
+                                                        Download pentest
+                                                        reports</a></li>
+                                                        </ul></li>
+                                                        <li><a
+                                                        href="#use-cases"
+                                                        id="toc-use-cases">Use
+                                                        cases</a></li>
+                                                        <li><a
+                                                        href="#authentication"
+                                                        id="toc-authentication">Authentication</a></li>
+                                                        <li><a
+                                                        href="#scheduling-and-running-pentests-with-h3-cli"
+                                                        id="toc-scheduling-and-running-pentests-with-h3-cli">Scheduling
+                                                        and running
+                                                        pentests with
+                                                        h3-cli</a></li>
+                                                        <li><a
+                                                        href="#powered-by-graphql"
+                                                        id="toc-powered-by-graphql">Powered
+                                                        by GraphQL</a>
+                                                        <ul>
+                                                        <li><a
+                                                        href="#advanced-writing-your-own-graphql-queries"
+                                                        id="toc-advanced-writing-your-own-graphql-queries">Advanced:
+                                                        Writing your own
+                                                        GraphQL
+                                                        queries</a></li>
+                                                        <li><a
+                                                        href="#advanced-parameterized-graphql-queries"
+                                                        id="toc-advanced-parameterized-graphql-queries">Advanced:
+                                                        Parameterized
+                                                        GraphQL
+                                                        queries</a></li>
+                                                        </ul></li>
+                                                        </ul>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="uk-width-medium-3-4">
+
+                    
+<h2 id="h3-cli-cli-tool-for-the-horizon3.ai-api">h3-cli: CLI tool for
+the Horizon3.ai API</h2>
+<p>h3-cli is a convenient CLI (command-line interface) for accessing the
+Horizon3.ai API. The Horizon3.ai API provides programmatic access to a
+subset of functionality available through the Horizon3.ai Portal. At a
+high level, the API allows you to:</p>
+<ul>
+<li>schedule an autonomous pentest</li>
+<li>download and run NodeZero™</li>
+<li>monitor the status of a pentest while it is running</li>
+<li>retrieve a pentest report after it’s complete</li>
+</ul>
+<p>The API can be used for a variety of use cases such as periodically
+scheduling assessments of your environment or kicking off a pentest as
+part of a continuous integration build pipeline.</p>
+
+<h2 id="installation-and-initial-setup">Installation and initial
+setup</h2>
+<p>The steps below will get you up and running quickly with h3-cli.
+These instructions were tested on MacOS and Linux machines, and
+generally should work on any <a
+href="https://en.wikipedia.org/wiki/POSIX">POSIX-compliant</a> system
+with bash support.</p>
+<p>If you plan to run <em>internal</em> pentests using h3-cli, you
+should install h3-cli on the same Docker Host where you launch
+NodeZero.</p>
+<p>It is assumed you already have an account with Horizon3.ai. If not,
+sign up at <a
+href="https://portal.horizon3ai.com/">https://portal.horizon3ai.com/</a>.</p>
+<h3 id="obtain-an-api-key">1. Obtain an API key</h3>
+<p>An API key is required to access the H3 API. Obtain one from the
+Portal under the User -&gt; Settings menu: <a
+href="https://portal.horizon3ai.com/settings/api">https://portal.horizon3ai.com/settings/api</a>.</p>
+<p>Keep your API key secure, as anyone with your API key can access your
+H3 account.</p>
+<h3 id="install-this-git-repo">2. Install this git repo</h3>
+<p>First, install this repo on your machine using the following git
+command within a shell/terminal.</p>
+<pre class="shell"><code>git clone git@gitlab.com:h3upperbounds/data/h3-cli.git</code></pre>
+<p>This will create a new directory, <code>h3-cli</code>, and download
+the contents of the repo to it. The <code>h3-cli</code> directory will
+be created in the directory where you run the git command. You can
+install h3-cli anywhere on the filesystem.</p>
+<p>If you don’t have git, you can download the repo as a zip archive
+from the menu above, and unzip it anywhere on the filesystem.</p>
+<h3 id="run-the-h3-cli-install-script">3. Run the h3-cli install
+script</h3>
+<p>Run the following commands to install and configure h3-cli.
+Substitute <code>your-api-key-here</code> with your actual API key.</p>
+<pre class="shell"><code>cd h3-cli
+bash install.sh your-api-key-here</code></pre>
+<p>The install script will install dependencies (jq) and create your
+h3-cli profile under the <code>$HOME/.h3</code> directory. Your API key
+is stored in your h3-cli profile. The profile permissions are restricted
+so that no other users (besides yourself) can read it.</p>
+<p>The install script will ask you to edit your shell profile
+(<code>$HOME/.bash_profile</code> or <code>$HOME/.bash_login</code> or
+<code>$HOME/.profile</code>, depending on your operating system) to set
+the following environment variables:</p>
+<ul>
+<li><code>H3_CLI_HOME</code>: this environment variable is used by
+h3-cli to locate itself and its supporting files.</li>
+<li><code>PATH</code>: this environment variable specifies the
+directories to be searched to find a shell command.</li>
+</ul>
+<p>After updating your shell profile, re-login or restart your shell
+session to pick up the profile changes, then verify you can invoke h3 by
+running it from the command prompt:</p>
+<pre class="shell"><code>h3</code></pre>
+<p>If everything’s installed correctly, you should see the h3-cli help
+text.</p>
+<h2 id="getting-started">Getting started</h2>
+<h3 id="verify-connectivity-with-the-api">1. Verify connectivity with
+the API</h3>
+<p>Run the following command to verify connectivity with the API.</p>
+<pre class="shell"><code>h3 hello-world</code></pre>
+<p>You should see the response:</p>
+<pre class="shell"><code>{
+  &quot;data&quot;: {
+    &quot;hello&quot;: &quot;world!&quot;
+  }
+}</code></pre>
+<p>⚠️ If you are getting an error response, please contact H3 via the
+chat icon in the <a href="https://portal.horizon3ai.com/">Horizon3.ai
+Portal</a>.</p>
+<h3 id="query-the-list-of-pentests-in-your-account">2. Query the list of
+pentests in your account</h3>
+<p>The command below will return the list of pentests in your account,
+most recent first.</p>
+<pre class="shell"><code>h3 pentests </code></pre>
+<p>To filter for pentests that match a given search term, pass the
+search term as a parameter:</p>
+<pre class="shell"><code>h3 pentests sample</code></pre>
+<h3 id="query-a-specific-pentest-from-your-account">3. Query a specific
+pentest from your account</h3>
+<p>To query the most recent pentest in your account:</p>
+<pre class="shell"><code>h3 pentest</code></pre>
+<p>To query any pentest in your account, pass the <code>op_id</code> of
+the pentest as a parameter:</p>
+<pre class="shell"><code>h3 pentest your-op-id-here</code></pre>
+<p>Several h3-cli commands will use the most recent pentest as the
+default, unless an <code>op_id</code> is passed as a parameter.</p>
+<blockquote>
+<p>The terms “op” and “pentest” are often used interchangeably.</p>
+</blockquote>
+<h3 id="schedule-a-pentest">4. Schedule a pentest</h3>
+<p>Scheduling a pentest requires specifying an <em>op template</em>. An
+op template specifies a full pentest configuration, which includes
+scope, attack parameters, and other (optional) configuration.</p>
+<p>Horizon3.ai provides new users with a default op template named
+<code>Default 1 - Recommended</code>. This template is always up-to-date
+with our latest attack parameters and recommended configuration. The
+default template does not define a scope, in which case NodeZero will
+use <em>Intelligent Scope</em> - NodeZero’s host subnet will provide the
+initial scope, and it will expand organically during the pentest as more
+hosts and subnets are discovered. For more information on Intelligent
+Scope and other deployment options, visit our <a
+href="https://portal.horizon3ai.com/documentation/nodezero-deployment-options">product
+documentation</a>.</p>
+<p>For experienced users, custom op template(s) may be created via the
+<a href="https://portal.horizon3ai.com/">Horizon3.ai Portal</a>. To
+create a custom op template, walk through the <em>Run a Pentest</em>
+modal until you see the option to customize the pentest configuration.
+The op template can be created without actually running the pentest.</p>
+<p>To schedule a pentest using the default op template and Intelligent
+Scope:</p>
+<pre class="shell"><code>h3 schedule-pentest</code></pre>
+<p>The JSON response contains the details for the newly scheduled
+pentest. You can verify the pentest is provisioning by checking your <a
+href="https://portal.horizon3ai.com/pentests">Horizon3.ai Portal</a>, or
+by running <code>h3 pentest</code>.</p>
+<p>There are several ways to specify additional parameters when
+scheduling pentests. For more information see additional examples <a
+href="#scheduling-and-running-pentests-with-h3-cli">here</a>.</p>
+<p><strong>WAIT! YOU’RE NOT DONE!</strong>: For internal pentests (which
+are the default), additional steps are required before the pentest will
+begin running. See the next section about downloading and running
+NodeZero in order to complete the initiation of your pentest.</p>
+<h3 id="run-nodezero">5. Run NodeZero</h3>
+<p><strong>⚠️ The following instructions apply to <em>internal</em>
+pentests only, not <em>external</em> pentests.</strong></p>
+<p>After scheduling an <em>internal</em> pentest, you then have to run
+our NodeZero container on a Docker Host inside your network. This is
+done by running the NodeZero Launch Script on your Docker Host.</p>
+<p>To run the NodeZero Launch Script for your most recently scheduled
+pentest:</p>
+<pre class="shell"><code>h3 run-nodezero</code></pre>
+<p><strong>YOUR PENTEST HAS BEEN LAUNCHED!</strong> Assuming all
+commands ran without error, then you have successfully scheduled and
+launched your pentest. You should see output from the NodeZero Launch
+Script being logged to the console. The script will first verify your
+system is compatible with NodeZero before downloading and running it.
+When the pentest is complete, NodeZero will automatically shut itself
+down.</p>
+<p>NodeZero is a Docker container. You can view it using
+<code>docker ps</code>. The container name will be of the form
+<code>n0-xxxx</code>.</p>
+<h3 id="download-pentest-reports">6. Download pentest reports</h3>
+<p>After your pentest has finished, use the following command to
+download a zip file containing all PDF and CSV reports for the most
+recently scheduled pentest:</p>
+<pre class="shell"><code>h3 pentest-reports</code></pre>
+<p>The above command will download the zip file to
+<code>pentest-reports-{op_id}.zip</code> in the current directory.</p>
+<h2 id="use-cases">Use cases</h2>
+<p><a href="guides/recurring-pentests.html"><strong>Schedule recurring
+pentests.</strong></a> A common use case for h3-cli is running pentests
+automatically on a recurring basis, for example once a week or once a
+month. See <a href="guides/recurring-pentests.html">this guide</a> to
+learn how to set up recurring pentests using h3-cli.</p>
+<p><a href="guides/monitor-pentests.html"><strong>Monitoring
+pentests.</strong></a> See <a href="guides/monitor-pentests.html">this
+guide</a> to learn how to monitor pentests using h3-cli.</p>
+<p><a href="guides/paginate-results.html"><strong>Paginating
+results.</strong></a> See <a href="guides/paginate-results.html">this
+guide</a> to learn how to paginate through large result sets using
+h3-cli.</p>
+<h2 id="authentication">Authentication</h2>
+<p>Authentication happens seamlessly and automatically when you invoke
+the <code>h3</code> command. There’s nothing explicit you need to do to
+authenticate. This section documents the underlying mechanics.</p>
+<p>h3-cli reads your <code>H3_API_KEY</code> from your h3-cli profile
+(under <code>$HOME/.h3</code>) to authenticate to the Horizon3.ai API
+and establishes a (temporary) session. The session token (a JWT) is
+stored in <code>$HOME/.h3/jwt</code>. The session token expires after 1
+hour, at which point h3-cli will automatically re-authenticate and
+re-establish a session.</p>
+<p>You can explicitly authenticate using the following command:</p>
+<pre class="shell"><code>h3 auth</code></pre>
+<p>The above command will output the session token (and also write it to
+<code>$HOME/.h3/jwt</code>). If you already have an established
+(non-expired) session token, <code>h3 auth</code> will continue to use
+that session token rather than re-authenticate.</p>
+<p>If you want to <em>force</em> h3-cli to re-authenticate, use the
+<code>force</code> option:</p>
+<pre class="shell"><code>h3 auth force</code></pre>
+<p>This can be useful if you’re switching from one
+<code>H3_API_KEY</code> to another and want to force authentication
+against the new <code>H3_API_KEY</code>.</p>
+<h2 id="scheduling-and-running-pentests-with-h3-cli">Scheduling and
+running pentests with h3-cli</h2>
+<p>This section contains additional examples for scheduling and running
+pentests using h3-cli.</p>
+<p>The simplest way to schedule a pentest is to use the default op
+template and <em>Intelligent Scope</em>:</p>
+<pre class="shell"><code>h3 schedule-pentest</code></pre>
+<p>To schedule a pentest AND launch NodeZero (if it’s an
+<em>internal</em> pentest; for external pentests it skips the launch
+step):</p>
+<pre class="shell"><code>h3 run-pentest</code></pre>
+<p>To run a pentest using a custom op template, specify it as a
+parameter to <a
+href="queries/schedule_op_template.graphql">schedule_op_template.graphql</a>:</p>
+<pre class="shell"><code>h3 run-pentest &#39;{&quot;op_template_name&quot;:&quot;your-op-template-here&quot;}&#39; </code></pre>
+<p>To run a pentest using the default op template but assign it a name
+of your choosing, use the optional <code>op_name</code> parameter:</p>
+<pre class="shell"><code>h3 run-pentest &#39;{&quot;op_name&quot;:&quot;your-op-name-here&quot;}&#39; </code></pre>
+<p>To run a pentest using the default op template but specify its name
+and scope, use the optional <code>schedule_op_form</code> parameter:</p>
+<pre class="shell"><code>h3 run-pentest &#39;{&quot;schedule_op_form&quot;:{&quot;op_name&quot;:&quot;your-op-name-here&quot;, &quot;op_param_max_scope&quot;: &quot;192.168.0.0/24&quot;}}&#39; </code></pre>
+<h2 id="powered-by-graphql">Powered by GraphQL</h2>
+<p>The Horizon3.ai API is powered by GraphQL. In addition to this CLI
+document, relevant documentation includes:</p>
+<ul>
+<li><a href="https://h3-graphql-docsite.horizon3ai.com/">Horizon3.ai
+GraphQL API Reference</a></li>
+<li><a href="https://graphql.org/">Learn about GraphQL</a></li>
+</ul>
+<h3 id="advanced-writing-your-own-graphql-queries">Advanced: Writing
+your own GraphQL queries</h3>
+<p>h3-cli provides a simple mechanism to run your own GraphQL queries.
+First you define the GraphQL query in a file (typically with a
+<code>.graphql</code> extension, although that is not required). Then
+pass the file to <code>h3 gql</code>:</p>
+<pre class="shell"><code>h3 gql {your-query-file}</code></pre>
+<p>For example, define the following in a file named
+<code>my_session.graphql</code>:</p>
+<pre><code>query {
+    session_user_account {
+        email
+        name
+        company_name
+    }
+}</code></pre>
+<p>Then run:</p>
+<pre class="shell"><code>h3 gql ./my_session.graphql</code></pre>
+<p>You should see the raw JSON response from the GraphQL server. You can
+pretty-print the JSON response using jq:</p>
+<pre class="shell"><code>h3 gql ./my_session.graphql | jq .</code></pre>
+<p><strong>Important!</strong> You must specify the path to the graphql
+file (full or relative, ie. <code>./my_session.graphql</code> instead of
+just <code>my_session.graphql</code>), otherwise you risk colliding with
+graphql files that h3-cli uses internally.</p>
+<h3 id="advanced-parameterized-graphql-queries">Advanced: Parameterized
+GraphQL queries</h3>
+<p>GraphQL queries can also define parameters, which are passed to
+<code>h3 gql</code> as a JSON object.</p>
+<p>For example, define the following in a file named
+<code>my_pentest.graphql</code>:</p>
+<pre><code>query q($op_id: String!) {
+    pentest(op_id:$op_id) {
+        op_id
+        name
+        state
+    }
+}</code></pre>
+<p>In this example, <code>$op_id</code> is a parameter that must be
+provided in order to run the query. The parameter is passed to the query
+within a JSON object:</p>
+<pre class="shell"><code>h3 gql ./my_pentest.graphql &#39;{&quot;op_id&quot;:&quot;your-op-id-here&quot;}&#39; | jq .</code></pre>
+<blockquote>
+<p>Substitute <code>your-op-id-here</code> with an actual
+<code>op_id</code>.</p>
+</blockquote>                    
+                </div>
+            </div>
+            <script src="https://vjs.zencdn.net/5.4.4/video.js"></script>
+        </div>
+    </body>
+</html>

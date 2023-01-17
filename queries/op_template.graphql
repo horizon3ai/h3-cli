@@ -1,0 +1,58 @@
+query q($uuid: String!) { 
+    op_template(op_template_uuid:$uuid) {
+        ...OpTemplateFragment
+    }
+}
+
+fragment OpTemplateFragment on OpTemplate {
+    uuid  
+    op_template_name
+    op_type
+    schedule_op_form {
+        ...ScheduleOpFormFragment
+    }
+    row_created_at
+    row_updated_at
+}
+
+
+fragment ScheduleOpFormFragment on ScheduleOpForm {
+    op_name
+    op_type
+    op_param_blacklist
+    op_param_min_scope
+    op_param_max_scope
+    feature_flags {
+        ...FeatureFlagFragment
+    }
+    osint_domains
+    osint_company_names
+    passwords_to_spray
+    git_accounts { 
+        ...GitAccountFragment
+    }
+    aws_account_ids
+    asset_group_uuid
+    start_paused
+    minimum_run_time
+    maximum_run_time
+    network_interface
+}
+
+ 
+fragment FeatureFlagFragment on FeatureFlag {
+    name
+    value
+    property_name
+    property_description
+    category_name
+    category_description
+    risk
+    enables_min_runtime
+    enables_password_spray
+}
+
+fragment GitAccountFragment on GitAccount {
+    name
+    source
+}

@@ -1,0 +1,175 @@
+#!/bin/bash
+#
+# Simple utility for posting a GraphQL query to the H3 API.
+# Reads the GraphQL query from a file, writes the response to STDOUT.
+#
+# See the accompanying README.md for usage info.
+#
+
+
+source h3-env
+
+
+function refresh_jwt {
+    H3_API_JWT=`h3-auth force`
+}
+
+
+function read_jwt {
+    H3_API_JWT=`h3-auth`
+}
+
+
+# $1: the graphql query file basename
+# finds the graphql query file on the path (H3_CLI_GQL_PATH)
+# @returns the file name
+function find_query_file {
+    echolog "searching for GQL file $f in H3_CLI_GQL_PATH=$H3_CLI_GQL_PATH ..."
+    if [[ $f == *"/"* ]]; then
+        if [ -e "$f" ]; then
+            echo $f 
+            return
+        fi
+        echoerr "ERROR: file not found: $f"
+        exit 1
+    fi
+    prev_IFS=$IFS 
+    IFS=:
+    dirs=($H3_CLI_GQL_PATH)
+    IFS=$prev_IFS
+    # the find command searches all subdirs as well, which isn't what we want 
+    # (and can take a while)
+    # find "${dirs[@]}" -depth 0 -name "$f" -o -name "$f.graphql"
+    for d in "${dirs[@]}"; do
+        if [ -e "$d/$f" ]; then
+            echo "$d/$f"
+            return
+        fi
+        if [ -e "$d/$f.graphql" ]; then
+            echo "$d/$f.graphql"
+            return
+        fi
+    done
+    echoerr "ERROR: file not found; searching for $f in H3_CLI_GQL_PATH=$H3_CLI_GQL_PATH"
+    exit 1
+}
+
+
+# finds the graphql query file on the path (H3_CLI_GQL_PATH)
+# @returns the file contents
+function read_query {
+    f=$1
+    ff=`find_query_file $1`
+    if [ -z "$ff" ]; then
+        return
+    fi
+    echolog "reading file $ff ..."
+    # sed removes comments from the file
+    cat -- "$ff" | sed 's/^ *#.*//'
+}
+
+
+function escape_quotes {
+    # echo "$1" | sed 's/"/\\"/g'
+    cat <<<$1 | sed 's/"/\\"/g'
+}
+
+
+# @returns gql response (json)
+function post_query {
+    echolog "posting GQL request ..."
+    q=`escape_quotes "$1"`
+    v="$2"
+    # echolog $q
+    # echolog $v
+    if [ -z "$v" ]; then v="{}"; fi
+    curl -s -S -k \
+      -X POST $H3_GQL_URL/ \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $H3_API_JWT" \
+      -d @- <<HERE 
+{
+    "query": "$q",
+    "variables": $v
+}
+HERE
+}
+
+
+# -------------------------------------------------------------------------
+# main function
+# -------------------------------------------------------------------------
+
+
+# usage: parse_args $*
+# if the args are not defined, return nothing.
+# if the args contain a json document, return it directly.
+# otherwise, treat the arg as a single op_id and return it in json format.
+function parse_args {
+    args=$*
+    if [ -z "$args" ]; then
+        return 
+    fi
+    # if raw json provided, return it
+    if [[ $args == *"{"* ]]; then
+        echo "$args"
+        return
+    fi
+    if [[ $args == *" "* ]]; then
+        echoerr "ERROR: invalid arguments: $args"
+        exit 1
+    fi
+    # otherwise assume it's an op_id.
+    echo "{\"op_id\":\"$args\"}"
+}
+
+
+# read / refresh the jwt.
+# read the graphql query from the file/stdin.
+# post the query
+# catch auth failures, refresh jwt, retry
+# print out the response
+function main {
+    # read the query
+    read_jwt
+    q=`read_query $*`
+    if [ -z "$q" ]; then
+        echoerr "ERROR: empty query or file not found"
+        exit 1
+    fi
+
+    # read the vars
+    shift
+    v=`parse_args $*`  # use $* otherwise doesn't handle spaces in $2
+
+    # run the query 
+    r=`post_query "$q" "$v"`
+    rc=$?
+    # echolog "post_query response: $?: $r"
+    if [ "$r" = '{"message":"The incoming token has expired"}' -o "$r" = '{"Message":"Access Denied"}' -o "$r" = '{"message":"Unauthorized"}' ]
+    then 
+        refresh_jwt
+        r=`post_query "$q" "$v"`
+    fi
+
+    echo $r
+
+    if [ "$r" = "Request body is not a valid JSON" ]; then
+        exit 1
+    fi
+
+    # check errors
+    # echolog "checking for errors"
+    error_message=`cat <<<$r | jq -r .errors[]?.message`
+    if [ ! -z "$error_message" ]; then 
+        exit 1
+    fi
+
+    exit $rc
+}
+
+main $*
+
+
+
+

@@ -1,0 +1,12 @@
+.*.swp
+.*.un~
+.*.jwt
+.idea
+.h3-cli.*
+*.conf
+.env*
+dri
+tmp
+bin/jq
+bin/yq
+queries-admin

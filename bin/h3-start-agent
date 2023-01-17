@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Starts the H3 agent.
+# Intended to be run as a backgraound daemon process.
+#
+# See: $ h3 start-agent
+#
+# usage: h3-start-agent {agent-name} 
+#
+
+# 0.
+# include common utils
+source h3-env
+
+#
+# Helper function for building the JSON parameters 
+# for the GraphQL request.
+#
+function build_json_params {
+    name=$1
+    uname=$2
+    cat <<HERE
+{"input":{"name":"$name","uname":"$uname"}}
+HERE
+}
+
+
+function sleepy {
+    agent_name=$1
+    sleep_s=60
+    echoerr "[agent: $agent_name] Sleeping for $sleep_s seconds"
+    sleep $sleep_s
+}
+
+
+# 1.
+# parse args
+agent_name=$1
+if [ -z "$agent_name" ]; then
+    echoerr "agent-name is required"
+    exit 1
+fi
+
+
+# 2.
+# periodically poll for the next command to run
+echoerr "[agent: $agent_name] Starting agent: $agent_name"
+while [ 1 ]; do
+
+    # a.
+    # fetch the next agent command
+    uname=`uname -a`
+    json_params=`build_json_params "$agent_name" "$uname"`
+    res=`h3-gql next_agent_command "$json_params"`
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echoerr "[agent: $agent_name] Failed to fetch the next agent command: rc=$rc, res=$res"
+        sleepy "$agent_name"
+        continue
+    fi
+ 
+    # b.
+    # parse the command
+    agent_command=`cat <<<$res | jq -r .data.next_agent_command`
+    echoerr "[agent: $agent_name] Received agent command: $agent_command"
+    if [ "$agent_command" = "null" ]; then
+        sleepy "$agent_name"
+        continue 
+    fi
+
+    # c.
+    # run the command
+    command=`cat <<<$agent_command | jq -r .command`
+    echoerr "[agent: $agent_name] Running command in a separate process: $command"
+    eval "h3 $command" &
+
+    sleepy "$agent_name"
+done
+
+
+echoerr "[agent: $agent_name] H3 agent process is exiting."

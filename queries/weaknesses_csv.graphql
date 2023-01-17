@@ -1,0 +1,3 @@
+query q($op_id:String!) {
+    weaknesses_csv(input: {op_id: $op_id})
+}

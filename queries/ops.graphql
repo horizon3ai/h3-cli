@@ -1,0 +1,30 @@
+query q($search: String = "") {
+    op_tabs_count(
+        page_input:{
+            text_search:$search
+        }
+    )
+    op_tabs_page(
+        page_input:{
+            text_search:$search
+        }
+    ) {
+        op_tabs {
+            ...OpTabFragment
+        }
+    }
+}
+
+fragment OpTabFragment on OpTab {
+    op_id
+    op_name
+    op_state
+    scheduled_timestamp_iso
+    launched_timestamp_iso
+    completed_timestamp_iso
+    duration_hms
+    in_scope_hosts_count
+    confirmed_weaknesses_count
+    confirmed_credentials_count
+    nodezero_script_url
+}

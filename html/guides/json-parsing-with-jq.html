@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html  dir="ltr">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title></title>
+        <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+        <link rel="apple-touch-icon-precomposed" href="images/apple-touch-icon.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/2.26.4/css/uikit.gradient.css">
+
+        <!-- <link rel="stylesheet" href="style.css"> -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/style.css">
+        <link href="https://vjs.zencdn.net/5.4.4/video-js.css" rel="stylesheet" />
+        <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
+        <!-- <script src="uikit.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/uikit.js"></script>
+        <!-- <script src="scripts.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/scripts.js"></script>
+        <!-- <script src="jquery.sticky-kit.js "></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/jquery.sticky-kit.js"></script>
+
+        <meta name="generator" content="pandoc-uikit" />
+                        <title>json-parsing-with-jq</title>
+        <style type="text/css">code{white-space: pre;}</style>
+                                                       
+    </head>
+
+    <body>
+
+
+        <div class="uk-container uk-container-center uk-margin-top uk-margin-large-bottom">
+
+            
+            <div class="uk-grid" data-uk-grid-margin >          
+                <div class="uk-width-medium-1-4">
+                    <div class="uk-overflow-container" data-uk-sticky="{top:25,media: 768}">
+                        <div class="uk-panel uk-panel-box menu-begin" >
+
+                                                        <ul>
+                                                        <li><a
+                                                        href="#h3-cli-json-parsing-with-jq"
+                                                        id="toc-h3-cli-json-parsing-with-jq">h3-cli:
+                                                        JSON parsing
+                                                        with
+                                                        <code>jq</code></a></li>
+                                                        <li><a
+                                                        href="#quick-examples"
+                                                        id="toc-quick-examples">Quick
+                                                        examples</a></li>
+                                                        <li><a
+                                                        href="#view-the-json-response-structure"
+                                                        id="toc-view-the-json-response-structure">View
+                                                        the JSON
+                                                        response
+                                                        structure</a></li>
+                                                        <li><a
+                                                        href="#select-a-fieldlist-from-the-response"
+                                                        id="toc-select-a-fieldlist-from-the-response">Select
+                                                        a field/list
+                                                        from the
+                                                        response</a></li>
+                                                        <li><a
+                                                        href="#select-a-subset-of-fields-from-an-object"
+                                                        id="toc-select-a-subset-of-fields-from-an-object">Select
+                                                        a subset of
+                                                        fields from an
+                                                        object</a></li>
+                                                        <li><a
+                                                        href="#convert-a-list-of-json-objects-to-csv"
+                                                        id="toc-convert-a-list-of-json-objects-to-csv">Convert
+                                                        a list of JSON
+                                                        objects to
+                                                        CSV</a></li>
+                                                        </ul>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="uk-width-medium-3-4">
+
+                    
+<h2 id="h3-cli-json-parsing-with-jq">h3-cli: JSON parsing with
+<code>jq</code></h2>
+<p><code>jq</code> is a useful tool for parsing and transforming JSON
+responses. It is a powerful utility with many options, and is best
+learned through examples.</p>
+
+<h2 id="quick-examples">Quick examples</h2>
+<p>Copy + paste the following commands into your terminal to get an idea
+of what <code>jq</code> can do.</p>
+<p>For example, to parse just the <code>op_id</code> field from the
+response:</p>
+<pre class="shell"><code>h3 gql pentests | jq -r &#39;.data.pentests_page.pentests[].op_id&#39;</code></pre>
+<p>To parse just the <code>name</code> field from the response:</p>
+<pre class="shell"><code>h3 gql pentests | jq -r &#39;.data.pentests_page.pentests[].name&#39;</code></pre>
+<p>To parse a set of fields from the response:</p>
+<pre class="shell"><code>h3 gql pentests \
+    | jq -r &#39;.data.pentests_page.pentests[] | {op_id, name, scheduled_at, state}&#39;</code></pre>
+<p>To parse a set of fields from the response and convert them from JSON
+to CSV format:</p>
+<pre class="shell"><code>h3 gql pentests \
+    | jq -r &#39;.data.pentests_page.pentests[] | {op_id, name, scheduled_at, state}&#39; \
+    | jq -rsf $H3_CLI_HOME/filters/to_csv.jq</code></pre>
+<h2 id="view-the-json-response-structure">View the JSON response
+structure</h2>
+<p>It’s sometimes useful to view the structure of the JSON response
+payload:</p>
+<pre class="shell"><code>h3 gql pentests | jq -rf $H3_CLI_HOME/filters/to_struct.jq </code></pre>
+<p>Output:</p>
+<pre class="shell"><code>.
+.data
+.data.pentests_count
+.data.pentests_page
+.data.pentests_page.pentests
+.data.pentests_page.pentests[]
+.data.pentests_page.pentests[].aws_account_ids
+.data.pentests_page.pentests[].canceled_at
+.data.pentests_page.pentests[].client_name
+.data.pentests_page.pentests[].completed_at
+.data.pentests_page.pentests[].credentials_count
+.data.pentests_page.pentests[].data_resources_count
+.data.pentests_page.pentests[].data_stores_count
+.data.pentests_page.pentests[].duration_s
+.data.pentests_page.pentests[].etl_completed_at
+.data.pentests_page.pentests[].exclude_scope
+.data.pentests_page.pentests[].exclude_scope[]
+.data.pentests_page.pentests[].external_domains_count
+.data.pentests_page.pentests[].git_accounts
+.data.pentests_page.pentests[].hosts_count
+.data.pentests_page.pentests[].impacts_count
+.data.pentests_page.pentests[].launched_at
+.data.pentests_page.pentests[].max_scope
+.data.pentests_page.pentests[].max_scope[]
+.data.pentests_page.pentests[].min_scope
+.data.pentests_page.pentests[].name
+.data.pentests_page.pentests[].nodezero_ip
+.data.pentests_page.pentests[].nodezero_script_url
+.data.pentests_page.pentests[].op_id
+.data.pentests_page.pentests[].op_type
+.data.pentests_page.pentests[].osint_company_names
+.data.pentests_page.pentests[].osint_company_names[]
+.data.pentests_page.pentests[].osint_domains
+.data.pentests_page.pentests[].osint_keywords
+.data.pentests_page.pentests[].osint_keywords[]
+.data.pentests_page.pentests[].out_of_scope_hosts_count
+.data.pentests_page.pentests[].services_count
+.data.pentests_page.pentests[].state
+.data.pentests_page.pentests[].user_name
+.data.pentests_page.pentests[].users_count
+.data.pentests_page.pentests[].weakness_types_count
+.data.pentests_page.pentests[].weaknesses_count
+.data.pentests_page.pentests[].websites_count</code></pre>
+<h2 id="select-a-fieldlist-from-the-response">Select a field/list from
+the response</h2>
+<p>If you want to select only the <code>pentests</code> array from the
+response:</p>
+<pre class="shell"><code>h3 gql pentests | jq &#39;.data.pentests_page.pentests&#39;</code></pre>
+<p>This behaves more like a traditional REST API, where responses are
+often structured as a flat array of JSON objects.</p>
+<p>You can also drop the surrounding array brackets <code>[]</code> from
+the response and convert the output to a stream of JSON objects by
+adding <code>[]</code> to the filter:</p>
+<pre class="shell"><code>h3 gql pentests | jq &#39;.data.pentests_page.pentests[]&#39;</code></pre>
+<p>You can then select a single field from the stream of JSON objects by
+adding it to the filter. For example if you want just the list of
+op_ids:</p>
+<pre class="shell"><code>h3 gql pentests | jq -r &#39;.data.pentests_page.pentests[].op_id&#39;</code></pre>
+<h2 id="select-a-subset-of-fields-from-an-object">Select a subset of
+fields from an object</h2>
+<p>If you want to select a subset of fields from the JSON objects in the
+<code>pentests</code> array:</p>
+<pre class="shell"><code>h3 gql pentests | jq &#39;.data.pentests_page.pentests[] | {op_id, name, state, scheduled_at}&#39;</code></pre>
+<h2 id="convert-a-list-of-json-objects-to-csv">Convert a list of JSON
+objects to CSV</h2>
+<p>If you want to convert the <code>pentests</code> array to a CSV:</p>
+<pre class="shell"><code>h3 gql pentests | jq &#39;.data.pentests_page.pentests[]&#39; | jq -rsf $H3_CLI_HOME/filters/to_csv.jq</code></pre>
+<blockquote>
+<p>Note: the <a href="filters/to_csv.jq">to_csv.jq</a> filter will
+automatically convert lists and objects to JSON-encoded strings in the
+CSV.</p>
+</blockquote>                    
+                </div>
+            </div>
+            <script src="https://vjs.zencdn.net/5.4.4/video.js"></script>
+        </div>
+    </body>
+</html>

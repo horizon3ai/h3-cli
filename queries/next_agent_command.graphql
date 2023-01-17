@@ -1,0 +1,13 @@
+query q($input:AgentInput!) {
+    next_agent_command(input:$input) {
+        ...AgentCommandScalarFragment
+    }
+}
+  
+fragment AgentCommandScalarFragment on AgentCommand {
+    uuid
+    agent_uuid
+    command
+    received_at
+    row_created_at
+}

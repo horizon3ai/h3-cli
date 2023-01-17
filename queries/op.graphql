@@ -1,0 +1,20 @@
+query q($op_id: String!) {
+    op(op_id: $op_id) {
+        ...OpFragment
+    }
+}
+
+fragment OpFragment on Op {
+    op_id
+    op_name
+    op_state
+    scheduled_timestamp_iso
+    launched_timestamp_iso
+    completed_timestamp_iso
+    duration_hms
+    in_scope_hosts_count
+    confirmed_weaknesses_count
+    confirmed_credentials_count
+    nodezero_script_url
+}
+

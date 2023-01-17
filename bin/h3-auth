@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# usage:
+#
+# h3-auth           # read cached jwt file if exists
+# h3-auth force     # force re-auth
+#
+#
+
+# pull in env vars and util fns
+source h3-env 
+
+# JWT is stored here
+jwt_file="$H3_CLI_PROFILES_DIR/jwt"
+
+
+# @returns json response: {"token":"..."}
+function gen_jwt {
+    if [ "$H3_AUTH_URL" = "sandbox" ]; then
+        echo '{"token":"sandbox"}'
+        return 0
+    fi
+    curl -s -S -k \
+      -X POST $H3_AUTH_URL \
+      -H 'Content-Type: application/json' \
+      -d @- <<HERE 
+{
+    "key": "$H3_API_KEY"
+}
+HERE
+}
+
+
+function refresh_jwt {
+    echolog "authenticating to H3_AUTH_URL=$H3_AUTH_URL ..."
+    H3_API_JWT=`gen_jwt | jq -r .token`
+    echolog H3_API_JWT=$H3_API_JWT
+    echo $H3_API_JWT > $jwt_file
+}
+
+
+# 1. check env var 
+# 2. read it from the file
+# 3. refresh it
+# sets H3_API_JWT in the environment
+function read_jwt {
+    if [ -z "$H3_API_JWT" ]; then
+        if [ -f $jwt_file ]; then
+            H3_API_JWT=`cat $jwt_file`
+            H3_API_JWT=`echo $H3_API_JWT`    # gets rid of newlines 
+        fi 
+    fi
+    if [ -z "$H3_API_JWT" ]; then
+        refresh_jwt
+    fi
+}
+
+
+cmd=$1
+shift
+
+if [ -z "$cmd" ]; then
+    read_jwt
+    echo $H3_API_JWT 
+
+elif [ "$cmd" = "force" ]; then
+    refresh_jwt
+    echo $H3_API_JWT 
+
+fi
+

@@ -1,0 +1,13 @@
+mutation q($input:AgentInput!) {
+    hello_agent(input:$input) {
+        ...AgentCommandScalarFragment
+    }
+}
+  
+fragment AgentCommandScalarFragment on AgentCommand {
+    uuid
+    agent_uuid
+    command
+    received_at
+    row_created_at
+}

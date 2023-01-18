@@ -4,8 +4,6 @@
 `jq` is a useful tool for parsing and transforming JSON responses. 
 It is a powerful utility with many options, and is best learned through examples.
 
-[[_TOC_]]
-
 
 ## Quick examples
 

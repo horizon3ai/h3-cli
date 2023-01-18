@@ -14,7 +14,6 @@ the API allows you to:
 The API can be used for a variety of use cases such as periodically scheduling assessments 
 of your environment or kicking off a pentest as part of a continuous integration build pipeline.
 
-[[_TOC_]]
 
 ## Installation and initial setup
 

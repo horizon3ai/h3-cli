@@ -16,3 +16,14 @@ function echolog {
     fi
 }
 
+function escape_splat {
+    cat <<<$1 | sed 's/\*/\\*/g'
+}
+
+function escape_quotes {
+    cat <<<$1 | sed 's/"/\\"/g'
+}
+
+function unescape_splat {
+    cat <<<$1 | sed 's/\\\*/*/g'
+}

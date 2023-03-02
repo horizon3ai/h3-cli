@@ -5,7 +5,7 @@
 Queries that return potentially a lot of results can be paginated
 by using the optional `page_input` on the GraphQL request.  
 
-For example [action_logs.graphql](queries/action_logs.graphql) is parameterized
+For example [action_logs.graphql](../queries/action_logs.graphql) is parameterized
 to accept `page_num` and `page_size` as parameters.  These parameters are passed
 to `page_input` within the query file.
 

@@ -5,6 +5,7 @@
 It is a powerful utility with many options, and is best learned through examples.
 
 
+
 ## Quick examples
 
 Copy + paste the following commands into your terminal to get an idea of what `jq` can do.

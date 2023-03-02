@@ -28,7 +28,7 @@ HERE
 function sleepy {
     agent_name=$1
     sleep_s=60
-    echoerr "[agent: $agent_name] Sleeping for $sleep_s seconds"
+    echolog "[agent: $agent_name] Sleeping for $sleep_s seconds"
     sleep $sleep_s
 }
 
@@ -62,14 +62,14 @@ while [ 1 ]; do
     # b.
     # parse the command
     agent_command=`cat <<<$res | jq -r .data.next_agent_command`
-    echoerr "[agent: $agent_name] Received agent command: $agent_command"
-    if [ "$agent_command" = "null" ]; then
+    if [ "$agent_command" = "null" -o -z "$agent_command" ]; then
         sleepy "$agent_name"
         continue 
     fi
 
     # c.
     # run the command
+    echoerr "[agent: $agent_name] Received agent command: $agent_command"
     command=`cat <<<$agent_command | jq -r .command`
     echoerr "[agent: $agent_name] Running command in a separate process: $command"
     eval "h3 $command" &

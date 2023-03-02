@@ -27,46 +27,78 @@ function cmd_help {
 
 h3-cli: A command-line utility for the Horizon3 API.
 
-Usage:
+--------------
+General usage: 
 
 h3 hello-world                      # Tests basic connectivity with the Horizon3 API.
 h3 whoami                           # Returns information about the user account attached to the API key.
 h3 pentests [{search}]              # The list of pentests in the account, optionally filtered by {search}.
 h3 pentest [{op_id}]                # The pentest for the given {op_id}, or latest-pentest by default.
 h3 latest-pentest                   # Returns the most recently scheduled pentest in the account.
-h3 schedule-pentest [{options}]     # Schedule a pentest using the given optional {options}
-h3 run-nodezero [{op_id}]           # Download and run NodeZero for the given {op_id, or latest-pentest by default.
-h3 run-pentest [{options}]          # Combines schedule-pentest and run-nodezero.
-h3 run-pentests {input-file}        # Reads {options} line-by-line from the given {input-file} and runs each pentest sequentially.
+h3 run-pentest [{options}]          # Provision a new pentest using the given optional {options}.  
+h3 run-nodezero [{op_id}]           # Download and run NodeZero for the given {op_id}, or latest-pentest by default.
+h3 run-pentest-and-nodezero [{options}] 
+                                    # Combines run-pentest and run-nodezero. Both provisions a new pentest and runs NodeZero on the local machine.
+h3 run-pentests {input-file}        # Reads {options} line-by-line from the given {input-file} and calls h3-run-pentest-and-nodezero {options} for each, consecutively.
 h3 pause-pentest [{op_id}]          # Pauses the given {op_id}, or latest-pentest by default.
 h3 resume-pentest [{op_id}]         # Resumes the given {op_id}, or latest-pentest by default.
 h3 cancel-pentest [{op_id}]         # Ends the given {op_id}, or latest-pentest by default.
 h3 pentest-reports [{op_id}]        # Downloads pentest-reports-{op_id}.zip for the given {op_id}, or latest-pentest by default.
-h3 auth [force]                     # Authenticate to the API.
-h3 gql {graphql-file}               # Run the GraphQL request in the given {graphql-file}.
-h3 checkenv                         # Run the checkenv script to check for NodeZero compatibility.
-h3 accounts [{search}]              # List of client accounts this user has access to, optionally filtered by {search}.
+h3 clients [{search}]               # List of client accounts this user has access to, optionally filtered by {search}.
 h3 users                            # List of users with access to the current client account.
 h3 op-templates [{op-type}]         # Pentest templates for the current client account.  op-type can be either "NodeZero" (default) or "ExternalAttack".
 h3 op-template {uuid}               # Pentest template with the given uuid.
 h3 asset-groups [{search}]          # List of asset groups in the account, optionally filtered by {search}.
 h3 asset-group {uuid}               # The asset group with the given uuid.
-h3 start-agent {name} {log-file}    # Runs the agent as a background daemon and assigns it the given {name}.  The agent logs to {log-file}.
+h3 auth [force]                     # Authenticate to the API.
+h3 gql {graphql-file}               # Run the GraphQL request in the given {graphql-file}.
+h3 checkenv                         # Run the checkenv script to check for NodeZero compatibility.
+
+
+-------
+Agents:
+
+h3 agents                           # List of agents in the current client account.
+h3 start-agent {name} {log-file}    # Runs an agent as a background daemon and assigns it the given {name}.  The agent logs to {log-file}.
 h3 hello-agent {name}               # Sends a hello-world command to the agent with the assigned {name}.
 h3 stop-agent                       # Stops the agent running on the local machine.
 h3 ps-agent                         # Shows the running agent process.
-h3 agents                           # List of agents in the current client account.
 
+
+------------------
+Scheduled actions:
+
+h3 schedules                        # The list of Schedule objects in the account and their associated actions.
+h3 create-scheduled-action {schedule-name} {cron-expression} {action} [{params}]
+                                    # Create or update the given scheduled action.  Supports hourly resolution for the cron-expression.
+                                    # cron-expression format: 'min hour day month dow'
+                                    # cron-expression reference: https://crontab.guru/
+h3 delete-scheduled-action {schedule-name} {action}
+                                    # Delete the given scheduled action.
+h3 trigger-scheduled-action {schedule-name} {action}
+                                    # Trigger the given scheduled action now (for testting purposes).
+h3 enable-schedule {schedule-name}  # Enable the given schedule.
+h3 disable-schedule {schedule-name} # Disable the given schedule.
+h3 utc                              # Prints current UTC time. Scheduled action cron-expressions are specified in UTC time.
+
+
+-------------------------
+Managing h3-cli profiles:
+
+h3 profiles                         # List the h3-cli profiles (API keys) available in the ~/.h3 directory.
+h3 profile                          # Show the current h3-cli profile.
+. h3 profile {name}                 # Set the current h3-cli profile to the profile with the given name.
+h3 save-profile {name} {api-key}    # Create or updates an h3-cli profile with the given name and API key.
+                                    # h3-cli profiles are stored under the ~/.h3 directory.
+
+------------
+Other notes:
 
 Defaults to latest-pentest: 
-All commands that take an optional [{op_id}] will default to latest-pentest 
-if an op_id is not specified.
+All commands that take an optional [{op_id}] will default to latest-pentest if an op_id is not specified.
 
 For verbose logging: 
 export H3_CLI_VERBOSE=1
-
-To switch h3-cli profiles:
-export H3_CLI_PROFILE={profile}   # will load from \$HOME/.h3/{profile}.env
 
 Visit the H3 GraphQL API docsite for more details: 
 https://h3-graphql-docsite.horizon3ai.com/
@@ -239,6 +271,44 @@ function cmd_env {
 }
 
 
+function cmd_profiles {
+    source h3-env
+    for x in `ls $H3_CLI_PROFILES_DIR/*.env`; do 
+        basename $x | sed 's/[.]env$//'
+    done
+}
+
+
+function cmd_profile {
+    set_profile=$1
+    if [ -n "$set_profile" ]; then 
+        export H3_CLI_PROFILE=$set_profile
+        jwt=`h3-auth force`
+    fi
+    source h3-env
+    echo $H3_CLI_PROFILE
+}
+
+
+function cmd_add_profile {
+    profile_name=$1
+    api_key=$2
+    profile_file="$HOME/.h3/$profile_name.env"
+    if [ ! -e "$profile_file" ]; then 
+        echoerr "Creating h3-cli profile $profile_name under $HOME/.h3 ..."
+        mkdir -p $HOME/.h3
+        cat <<HERE > "$profile_file"
+H3_API_KEY=$api_key
+HERE
+        chmod -R 700 $HOME/.h3
+    else 
+        mv "$profile_file" "$profile_file.bak"
+        echoerr "Updating h3-cli profile $profile_name under $HOME/.h3 ..."
+        cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$api_key/" > "$profile_file"
+    fi
+}
+
+
 function ps_agent {
     ps -ef | grep h3-start-agent | grep -v grep
 }
@@ -293,11 +363,15 @@ HERE
 cmd=$1
 shift
 
+cmd=`cat <<<$cmd | sed s/_/-/g`
+
+
+# sed 
 
 if [ -z "$cmd" -o "$cmd" = "help" ]; then
     cmd_help $*
 
-elif [ "$cmd" = "hello-world" -o "$cmd" = "hello_world" ]; then
+elif [ "$cmd" = "hello-world" ]; then
     h3-gql hello_world | jq .
 
 elif [ "$cmd" = "whoami" ]; then
@@ -309,6 +383,15 @@ elif [ "$cmd" = "auth" ]; then
 elif [ "$cmd" = "env" ]; then
     cmd_env $*
 
+elif [ "$cmd" = "profiles" ]; then
+    cmd_profiles $*
+
+elif [ "$cmd" = "profile" ]; then
+    cmd_profile $*
+
+elif [ "$cmd" = "add-profile" -o "$cmd" = "save-profile" ]; then
+    cmd_add_profile $*
+
 elif [ "$cmd" = "gql" ]; then
     h3-gql $*
 
@@ -318,72 +401,89 @@ elif [ "$cmd" = "pentests" ]; then
 elif [ "$cmd" = "pentest" ]; then
     cmd_pentest $*
 
-elif [ "$cmd" = "latest-pentest" -o "$cmd" = "latest_pentest" ]; then
+elif [ "$cmd" = "latest-pentest" ]; then
     h3-gql latest_pentest $* | jq .data.pentests_page.pentests[]
 
-elif [ "$cmd" = "create-pentest" -o "$cmd" = "create_pentest" ]; then
+elif [ "$cmd" = "run-pentest" -o "$cmd" = "schedule-pentest" ]; then
     cmd_create_pentest $*
 
-elif [ "$cmd" = "schedule-pentest" -o "$cmd" = "schedule_pentest" ]; then
-    cmd_create_pentest $*
+elif [ "$cmd" = "run-pentest-and-nodezero" ]; then
+    h3-run-pentest-and-nodezero $*
 
-elif [ "$cmd" = "run-pentest" -o "$cmd" = "run_pentest" ]; then
-    h3-run-pentest $*
-
-elif [ "$cmd" = "run-pentests" -o "$cmd" = "run_pentests" ]; then
+elif [ "$cmd" = "run-pentests" ]; then
     h3-run-pentests $*
 
-elif [ "$cmd" = "cancel-pentest" -o "$cmd" = "cancel_pentest" ]; then
+elif [ "$cmd" = "cancel-pentest" ]; then
     h3-cancel-pentest $*
 
-elif [ "$cmd" = "launch-nodezero" -o "$cmd" = "launch_nodezero" -o "$cmd" = "run-nodezero" -o "$cmd" = "run_nodezero" ]; then
+elif [ "$cmd" = "launch-nodezero" -o "$cmd" = "run-nodezero" ]; then
     h3-run-nodezero $*
 
-elif [ "$cmd" = "pause-pentest" -o "$cmd" = "pause_pentest" ]; then
+elif [ "$cmd" = "pause-pentest" ]; then
     h3-pause-pentest $*
 
-elif [ "$cmd" = "resume-pentest" -o "$cmd" = "resume_pentest" ]; then
+elif [ "$cmd" = "resume-pentest" ]; then
     h3-resume-pentest $*
 
-elif [ "$cmd" = "pentest-reports" -o "$cmd" = "pentest_reports" ]; then
+elif [ "$cmd" = "pentest-reports" ]; then
     h3-pentest-reports $*
 
 elif [ "$cmd" = "checkenv" ]; then
     curl https://h3ai-web.s3.amazonaws.com/checkenv.sh | bash
 
-elif [ "$cmd" = "accounts" -o "$cmd" = "client-accounts" -o "$cmd" = "client_accounts"  ]; then
+elif [ "$cmd" = "clients" -o "$cmd" = "accounts" -o "$cmd" = "client-accounts" ]; then
     cmd_client_accounts $*
 
-elif [ "$cmd" = "users" -o "$cmd" = "user-accounts" -o "$cmd" = "user_accounts"  ]; then
+elif [ "$cmd" = "users" -o "$cmd" = "user-accounts" ]; then
     cmd_user_accounts $*
 
-elif [ "$cmd" = "op-templates" -o "$cmd" = "op_templates" ]; then
+elif [ "$cmd" = "op-templates" ]; then
     cmd_op_templates $*
 
-elif [ "$cmd" = "op-template" -o "$cmd" = "op_template" ]; then
+elif [ "$cmd" = "op-template" ]; then
     cmd_op_template $*
 
-elif [ "$cmd" = "asset-groups" -o "$cmd" = "asset_groups" ]; then
+elif [ "$cmd" = "asset-groups" ]; then
     cmd_asset_groups $*
 
-elif [ "$cmd" = "asset-group" -o "$cmd" = "asset_group" ]; then
+elif [ "$cmd" = "asset-group" ]; then
     cmd_asset_group $*
 
-elif [ "$cmd" = "start-agent" -o "$cmd" = "start_agent" ]; then
-    cmd_start_agent $*
+elif [ "$cmd" = "start-agent" ]; then
+    cmd_start_agent "$@"
 
-elif [ "$cmd" = "stop-agent" -o "$cmd" = "stop_agent" ]; then
+elif [ "$cmd" = "stop-agent" ]; then
     pkill_agent
 
-elif [ "$cmd" = "ps-agent" -o "$cmd" = "ps_agent" ]; then
+elif [ "$cmd" = "ps-agent" ]; then
     ps_agent
 
-elif [ "$cmd" = "hello-agent" -o "$cmd" = "hello_agent" ]; then
+elif [ "$cmd" = "hello-agent" ]; then
     cmd_hello_agent $*
 
 elif [ "$cmd" = "agents" ]; then
     h3-gql agents | jq .data.agents[]
 
+elif [ "$cmd" = "create-scheduled-action" ]; then
+    h3-create-scheduled-action "$@"
+
+elif [ "$cmd" = "delete-scheduled-action" ]; then
+    h3-delete-scheduled-action "$@"
+
+elif [ "$cmd" = "trigger-scheduled-action" ]; then
+    h3-trigger-scheduled-action "$@"
+
+elif [ "$cmd" = "schedules" -o "$cmd" = "schedule" ]; then
+    h3-gql schedules | jq '.data.schedules[]'
+
+elif [ "$cmd" = "enable-schedule" ]; then
+    h3-enable-schedule "$@"
+
+elif [ "$cmd" = "disable-schedule" ]; then
+    h3-disable-schedule "$@"
+
+elif [ "$cmd" = "utc" ]; then
+    date -u
 
 else 
     echoerr "ERROR: unrecognized command: \"$cmd\".  Run \"h3 help\" for usage info."

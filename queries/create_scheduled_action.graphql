@@ -1,0 +1,15 @@
+mutation q($input:CreateScheduledActionInput!) {
+    create_scheduled_action(input:$input) {
+        scheduled_action {
+            ...ScheduledActionFragment
+        }
+    }
+}
+ 
+fragment ScheduledActionFragment on ScheduledAction {
+    schedule_name
+    action
+    params
+    cron_expression
+    cron_description
+}

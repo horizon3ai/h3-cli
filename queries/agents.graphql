@@ -9,5 +9,6 @@ fragment AgentScalarFragment on Agent {
     name
     uname
     last_heartbeat_at
+    last_heartbeat_time_ago
     row_created_at
 }

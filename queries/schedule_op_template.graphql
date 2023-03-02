@@ -1,8 +1,14 @@
-mutation m($op_template_name: String! = "Default 1 - Recommended", $op_name: String = "Pentest scheduled via API", $schedule_op_form: ScheduleOpFormInput = {}) { 
+mutation m(
+    $op_template_name: String! = "Default 1 - Recommended"
+    $op_name: String = "Pentest created via h3-cli"
+    $schedule_op_form: ScheduleOpFormInput = {}
+    $agent_name: String
+) { 
     schedule_op_template(
-        op_template_name: $op_template_name,
-        op_name: $op_name,
+        op_template_name: $op_template_name
+        op_name: $op_name
         schedule_op_form: $schedule_op_form
+        agent_name: $agent_name
     ) { 
         op {
             ...OpFragment

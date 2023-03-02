@@ -1,0 +1,26 @@
+mutation q($schedule_name:String!) {
+    disable_schedule(schedule_name:$schedule_name) {
+        schedule {
+            ...ScheduleFragment
+        }
+    }
+}
+ 
+fragment ScheduleFragment on Schedule {
+    name
+    state
+    created_at
+    last_updated_at
+    actions {
+        ...ScheduledActionFragment
+    }
+}
+
+fragment ScheduledActionFragment on ScheduledAction {
+    action
+    params
+    cron_expression
+    cron_description
+    last_triggered_at
+    last_triggered_error
+}

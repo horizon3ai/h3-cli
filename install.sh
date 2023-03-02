@@ -2,10 +2,10 @@
 #
 # install script for h3-cli
 #
-# usage: ./install.sh {h3-api-key}
+# usage: bash install.sh {h3-api-key}
 #
 # 1. install jq
-# 1b. install yq
+# 1b. install yq (currently disabled)
 # 2. chmod h3-cli/bin
 # 3. create ~/.h3 profile
 # 4. update ~/.bash_profile
@@ -87,12 +87,12 @@ H3_API_KEY=$1
 H3_CLI_HOME=`pwd`
 
 if [ -z "$H3_API_KEY" ]; then 
-    echoerr "usage: ./install.sh {h3-api-key}"
+    echoerr "usage: bash install.sh {h3-api-key}"
     exit 1
 fi
 
-if [ -z "$H3_CLI_HOME" -o `basename $H3_CLI_HOME` != 'h3-cli' ]; then 
-    echoerr "ERROR: This script must be run from the h3-cli directory."
+if [ -z "$H3_CLI_HOME" -o ! -e "$H3_CLI_HOME/bin/h3-env" ]; then 
+    echoerr "ERROR: This script must be run from the h3-cli root directory."
     exit 1
 fi
 
@@ -154,16 +154,22 @@ echo "[.] DONE"
 
 # 2. create .h3 profile
 echo 
-if [ ! -e "$HOME/.h3/default.env" ]; then 
+profile_file="$HOME/.h3/default.env"
+if [ ! -e "$profile_file" ]; then 
     echo "[.] creating h3-cli profile under $HOME/.h3 ..."
     mkdir -p $HOME/.h3
-    cat <<HERE > $HOME/.h3/default.env
+    cat <<HERE > "$profile_file"
 H3_API_KEY=$H3_API_KEY
 HERE
     chmod -R 700 $HOME/.h3
 else 
-    echo "[.] h3-cli profile already exists under $HOME/.h3"
+    echo "[.] updating h3-cli profile under $HOME/.h3 ..."
+    mv "$profile_file" "$profile_file.bak"
+    cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/" > "$profile_file"
 fi
+# delete existing cached jwt, if any
+jwt_file="$HOME/.h3/default.jwt"
+rm -f "$jwt_file"
 echo "[.] DONE"
 
 

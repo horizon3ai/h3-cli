@@ -12,11 +12,19 @@ source h3-env
 
 function refresh_jwt {
     H3_API_JWT=`h3-auth force`
+    rc=$?
+    if [ $rc -ne 0 ]; then 
+        exit $rc
+    fi
 }
 
 
 function read_jwt {
     H3_API_JWT=`h3-auth`
+    rc=$?
+    if [ $rc -ne 0 ]; then 
+        exit $rc
+    fi
 }
 
 
@@ -69,21 +77,15 @@ function read_query {
 }
 
 
-function escape_quotes {
-    # echo "$1" | sed 's/"/\\"/g'
-    cat <<<$1 | sed 's/"/\\"/g'
-}
-
-
 # @returns gql response (json)
 function post_query {
     echolog "posting GQL request ..."
     q=`escape_quotes "$1"`
-    v="$2"
-    # echolog $q
-    # echolog $v
+    v=`unescape_splat "$2"`
+    echolog "q=$q"
+    echolog "v=$v"
     if [ -z "$v" ]; then v="{}"; fi
-    curl -s -S -k \
+    curl -s -S \
       -X POST $H3_GQL_URL/ \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $H3_API_JWT" \
@@ -152,7 +154,7 @@ function main {
         r=`post_query "$q" "$v"`
     fi
 
-    echo $r
+    echo "$r"
 
     if [ "$r" = "Request body is not a valid JSON" ]; then
         exit 1

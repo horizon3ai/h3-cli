@@ -1,0 +1,6 @@
+mutation q($input:DeleteScheduledActionInput!) {
+    delete_scheduled_action(input:$input) {
+        message
+    }
+}
+ 

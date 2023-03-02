@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html  dir="ltr">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title></title>
+        <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+        <link rel="apple-touch-icon-precomposed" href="images/apple-touch-icon.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/2.26.4/css/uikit.gradient.css">
+
+        <!-- <link rel="stylesheet" href="style.css"> -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/style.css">
+        <link href="https://vjs.zencdn.net/5.4.4/video-js.css" rel="stylesheet" />
+        <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
+        <!-- <script src="uikit.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/uikit.js"></script>
+        <!-- <script src="scripts.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/scripts.js"></script>
+        <!-- <script src="jquery.sticky-kit.js "></script> -->
+        <script src="https://cdn.jsdelivr.net/gh/diversen/pandoc-uikit@master/jquery.sticky-kit.js"></script>
+
+        <meta name="generator" content="pandoc-uikit" />
+                        <title>touchless-nodezero</title>
+        <style type="text/css">code{white-space: pre;}</style>
+                                                       
+    </head>
+
+    <body>
+
+
+        <div class="uk-container uk-container-center uk-margin-top uk-margin-large-bottom">
+
+            
+            <div class="uk-grid" data-uk-grid-margin >          
+                <div class="uk-width-medium-1-4">
+                    <div class="uk-overflow-container" data-uk-sticky="{top:25,media: 768}">
+                        <div class="uk-panel uk-panel-box menu-begin" >
+
+                                                        <ul>
+                                                        <li><a
+                                                        href="#h3-cli-touchless-nodezero-deployment-using-h3-cli"
+                                                        id="toc-h3-cli-touchless-nodezero-deployment-using-h3-cli">h3-cli:
+                                                        Touchless
+                                                        NodeZero
+                                                        deployment using
+                                                        h3-cli</a>
+                                                        <ul>
+                                                        <li><a
+                                                        href="#spin-up-an-agent-internal-pentests-only"
+                                                        id="toc-spin-up-an-agent-internal-pentests-only">1.
+                                                        Spin up an agent
+                                                        (<em>internal</em>
+                                                        pentests
+                                                        only)</a></li>
+                                                        <li><a
+                                                        href="#provision-a-pentest-and-assign-it-to-the-agent"
+                                                        id="toc-provision-a-pentest-and-assign-it-to-the-agent">2.
+                                                        Provision a
+                                                        pentest and
+                                                        assign it to the
+                                                        agent</a></li>
+                                                        </ul></li>
+                                                        <li><a
+                                                        href="#h3-cli-agent-runtime-profile"
+                                                        id="toc-h3-cli-agent-runtime-profile">h3-cli
+                                                        agent runtime
+                                                        profile</a></li>
+                                                        <li><a
+                                                        href="#useful-agent-commands"
+                                                        id="toc-useful-agent-commands">Useful
+                                                        agent
+                                                        commands</a></li>
+                                                        </ul>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="uk-width-medium-3-4">
+
+                    
+<h2 id="h3-cli-touchless-nodezero-deployment-using-h3-cli">h3-cli:
+Touchless NodeZero deployment using h3-cli</h2>
+<p>You can now deploy NodeZero automatically on your Docker Host using
+h3-cli.</p>
+<p>All <em>internal</em> pentests require that you deploy NodeZero on a
+Docker Host inside your network. This is usually done by manually
+copy+pasting the NodeZero Launch Script and running it on your
+machine.</p>
+<p>To launch NodeZero automatically, you first spin up a persistent
+agent process on your Docker Host, using h3-cli. The h3-cli agent is a
+long-lived background process that periodically polls the H3 API and
+launches NodeZero automatically on the local machine whenever a new
+pentest is created and assigned to that agent.</p>
+<blockquote>
+<p>If you are running <em>external</em> pentests, NodeZero is deployed
+automatically to the H3 cloud and the h3-cli agent is not required.</p>
+</blockquote>
+<h3 id="spin-up-an-agent-internal-pentests-only">1. Spin up an agent
+(<em>internal</em> pentests only)</h3>
+<p>The command below will spin up an agent named <code>my-agent</code>
+on the local machine, and log its output to
+<code>/tmp/my-agent.log</code>:</p>
+<pre class="shell"><code>h3 start-agent my-agent /tmp/my-agent.log</code></pre>
+<p>To verify the agent has registered itself with H3, run the command
+below:</p>
+<pre class="shell"><code>h3 agents</code></pre>
+<p>You should see an entry for the agent <code>my-agent</code> that you
+just started.</p>
+<p>Verify agent connectivity by sending it a “hello world”:</p>
+<pre class="shell"><code>h3 hello-agent my-agent 
+tail -f /tmp/my-agent.log</code></pre>
+<p>You should see the following hello world message received by your
+agent in the log. It might take a minute for the message to appear.</p>
+<pre><code>[Mon Feb  6 01:38:13 EST 2023] [agent: my-agent] Received agent command: {
+  &quot;uuid&quot;: &quot;aca96d72-13a2-487e-b6f1-fda2860e4aee&quot;,
+  &quot;agent_uuid&quot;: &quot;8c53d4e7-32a4-4d26-a02e-b83bb5770c19/my-agent&quot;,
+  &quot;command&quot;: &quot;hello-world&quot;,
+  &quot;received_at&quot;: &quot;2023-02-06T06:38:13.387793&quot;,
+  &quot;row_created_at&quot;: &quot;2023-02-06T06:38:06.553829&quot;
+}
+[Mon Feb  6 01:38:13 EST 2023] [agent: my-agent] Running command in a separate process: hello-world
+{
+  &quot;data&quot;: {
+    &quot;hello&quot;: &quot;world!&quot;
+  }
+}</code></pre>
+<h3 id="provision-a-pentest-and-assign-it-to-the-agent">2. Provision a
+pentest and assign it to the agent</h3>
+<p>To create a new pentest and assign it to your agent, use the
+<code>agent_name</code> parameter:</p>
+<pre class="shell"><code>h3 run-pentest &#39;{&quot;agent_name&quot;: &quot;my-agent&quot;, &quot;op_name&quot;: &quot;Pentest created via h3-cli and launched via agent&quot;}&#39;</code></pre>
+<p>In a minute or so you should see the agent kick off the NodeZero
+Launch Script for the newly created pentest. You can monitor the agent
+process by tailing the log:</p>
+<pre class="shell"><code>tail -f /tmp/my-agent.log</code></pre>
+<p>The NodeZero Launch Script will download and run the NodeZero Docker
+container on the local machine, just as if you had copy+pasted the
+<code>curl</code> command from the Portal.</p>
+<p>You can view the newly created pentest via:</p>
+<pre class="shell"><code>h3 pentest </code></pre>
+<h2 id="h3-cli-agent-runtime-profile">h3-cli agent runtime profile</h2>
+<p>A few notes about the h3-cli agent process:</p>
+<ul>
+<li>The agent process runs as the user that invoked
+<code>h3 start-agent</code>.</li>
+<li>The agent uses the same H3 API key and has the same role and
+permissions as the user who that invoked
+<code>h3 start-agent</code>.</li>
+<li>The agent process is disconnected from the user’s shell session and
+runs in the background.</li>
+<li>The user can log out of their shell session without affecting the
+agent process; the agent will continue to run in the background.</li>
+<li>The agent will NOT restart itself after a system reboot. To enable
+this, you can wire up <code>h3 start-agent</code> to your system
+launcher, eg. systemd, launchd, cron, etc.</li>
+</ul>
+<h2 id="useful-agent-commands">Useful agent commands</h2>
+<p>You can list your registered agents via:</p>
+<pre class="shell"><code>h3 agents</code></pre>
+<p>You can show any active agent processes on the local machine via:</p>
+<pre class="shell"><code>h3 ps-agent </code></pre>
+<p>Finally you can kill all agent processes on the local machine
+via:</p>
+<pre class="shell"><code>h3 stop-agent</code></pre>                    
+                </div>
+            </div>
+            <script src="https://vjs.zencdn.net/5.4.4/video.js"></script>
+        </div>
+    </body>
+</html>

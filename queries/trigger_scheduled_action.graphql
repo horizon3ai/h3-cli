@@ -1,0 +1,6 @@
+mutation q($input:TriggerScheduledActionInput!) {
+    trigger_scheduled_action(input:$input) {
+        message
+    }
+}
+ 

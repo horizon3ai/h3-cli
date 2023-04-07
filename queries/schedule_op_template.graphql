@@ -1,7 +1,7 @@
 mutation m(
-    $op_template_name: String! = "Default 1 - Recommended"
-    $op_name: String = "Pentest created via h3-cli"
-    $schedule_op_form: ScheduleOpFormInput = {}
+    $op_template_name: String
+    $op_name: String 
+    $schedule_op_form: ScheduleOpFormInput 
     $agent_name: String
 ) { 
     schedule_op_template(

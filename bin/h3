@@ -59,7 +59,7 @@ h3 checkenv                         # Run the checkenv script to check for NodeZ
 Agents:
 
 h3 agents                           # List of agents in the current client account.
-h3 start-agent {name} {log-file}    # Runs an agent as a background daemon and assigns it the given {name}.  The agent logs to {log-file}.
+h3 start-agent {name} {log-file}    # Runs an agent as a background process and assigns it the given {name}.  The agent logs to {log-file}.
 h3 hello-agent {name}               # Sends a hello-world command to the agent with the assigned {name}.
 h3 stop-agent                       # Stops the agent running on the local machine.
 h3 ps-agent                         # Shows the running agent process.

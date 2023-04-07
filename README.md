@@ -208,7 +208,7 @@ The above command will download the zip file to `pentest-reports-{op_id}.zip` in
 without having to manually copy+paste the NodeZero Launch Script.  [See this guide](guides/touchless-nodezero.md) 
 to learn how to deploy NodeZero automatically using h3-cli.
 
-[**Schedule recurring pentests.**](guides/recurring-pentests.md) A common use case for h3-cli is running pentests automatically 
+[**Automated scheduling.**](guides/recurring-pentests.md) A common use case for h3-cli is running pentests automatically 
 on a recurring basis, for example once a week or once a month. [See this guide](guides/recurring-pentests.md) to learn how to set 
 up recurring pentests using h3-cli.
 
@@ -323,6 +323,28 @@ h3 run-pentest '{"schedule_op_form":{"op_name":"your-op-name-here", "op_param_ma
 ```
 
 > Note that `h3 run-pentest` and `h3 run-pentest-and-nodezero` accept all the same optional parameters.
+
+
+### Running external pentests
+
+If you have an op template configured for your external pentest:
+
+```shell
+h3 run-pentest '{"op_template_name":"your-op-template-here"}' 
+```
+
+If you do NOT have an op template, you can run an external pentest by first looking up your Asset Group's uuid via `h3 asset-groups`:
+
+```shell
+h3 asset-groups
+```
+
+Then use the command below to run an external pentest against that Asset Group.  Substitute your Asset Group's uuid for `{your-asset-group-uuid}`:
+
+```shell
+h3 run-pentest '{"schedule_op_form": {"op_type": "ExternalAttack", "asset_group_uuid": "{your-asset-group-uuid}"}}' 
+```
+
 
 
 ## Powered by GraphQL

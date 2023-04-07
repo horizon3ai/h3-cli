@@ -35,7 +35,12 @@ if [ -z "$H3_API_KEY" ]; then
         source $profile
     fi
     if [ -z "$H3_API_KEY" ]; then
-        echoerr "H3_API_KEY environment variable required.  Must be exported to the shell or defined in $profile"
+        echoerr "H3_API_KEY environment variable required.  It must be exported to the shell or defined in $profile"
+        exit 1
+    fi
+    API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with install.sh.
+    if [ "$H3_API_KEY" = "$API_KEY_UNSPECIFIED" ]; then
+        echoerr "Please set your API key in $profile"
         exit 1
     fi
 fi

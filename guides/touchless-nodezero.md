@@ -88,7 +88,7 @@ h3 pentest
 A few notes about the h3-cli agent process:
 
 * The agent process runs as the user that invoked `h3 start-agent`.
-* The agent uses the same H3 API key and has the same role and permissions as the user who that invoked `h3 start-agent`.
+* The agent uses the same H3 API key and has the same role and permissions as the user that invoked `h3 start-agent`.
 * The agent process is disconnected from the user's shell session and runs in the background.
 * The user can log out of their shell session without affecting the agent process; the agent will continue to run in the background.
 * The agent will NOT restart itself after a system reboot. To enable this, you can wire up `h3 start-agent` to your system launcher, eg. systemd, launchd, cron, etc.

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Starts the H3 agent.
-# Intended to be run as a backgraound daemon process.
+# Intended to be run as a backgraound process.
 #
 # See: $ h3 start-agent
 #

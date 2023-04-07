@@ -2,7 +2,7 @@
 #
 # install script for h3-cli
 #
-# usage: bash install.sh {h3-api-key}
+# usage: bash install.sh [{h3-api-key}]
 #
 # 1. install jq
 # 1b. install yq (currently disabled)
@@ -83,13 +83,9 @@ function pick_yq_url {
 }
 
 
-H3_API_KEY=$1
+# 0.
+# verify this script is being run from the h3-cli dir.
 H3_CLI_HOME=`pwd`
-
-if [ -z "$H3_API_KEY" ]; then 
-    echoerr "usage: bash install.sh {h3-api-key}"
-    exit 1
-fi
 
 if [ -z "$H3_CLI_HOME" -o ! -e "$H3_CLI_HOME/bin/h3-env" ]; then 
     echoerr "ERROR: This script must be run from the h3-cli root directory."
@@ -101,23 +97,23 @@ if [ -z "$HOME" -o ! -e "$HOME" ]; then
     exit 1
 fi
 
-
-# 0. chmod executable
+# chmod executable
 chmod -R a+x $H3_CLI_HOME/bin
 
 
-# 1. install jq 
+# 1. 
+# install jq 
 echo 
-echo "[.] checking if jq is already installed ..."
+echo "[.] Checking if jq is already installed ..."
 jqv=`jq --version 2>&1`
 if [ $? -ne 0 ]; then
     jq_url=`pick_jq_url`
-    echo "[.] installing jq from $jq_url ... "
+    echo "[.] Installing jq from $jq_url ... "
     curl -s -L $jq_url -o $H3_CLI_HOME/bin/jq
     chmod -R a+x $H3_CLI_HOME/bin
    
     # verify
-    echo "[.] verifying $H3_CLI_HOME/bin/jq ... "
+    echo "[.] Verifying $H3_CLI_HOME/bin/jq ... "
     jqv=`$H3_CLI_HOME/bin/jq --version`
     if [ $? -ne 0 ]; then
         rm -f $H3_CLI_HOME/bin/jq   # cleanup
@@ -129,17 +125,18 @@ if [ $? -ne 0 ]; then
 fi
 echo "[.] DONE"
 
-# 1b. install yq
-# echo "[.] checking if yq is already installed ..."
+# 1b. 
+# install yq
+# echo "[.] Checking if yq is already installed ..."
 # yqv=`jy --version 2>&1`
 # if [ $? -ne 0 ]; then
 #     yq_url=`pick_yq_url`
-#     echo "[.] installing yq from $yq_url ... "
+#     echo "[.] Installing yq from $yq_url ... "
 #     curl -s -L $yq_url -o $H3_CLI_HOME/bin/yq
 #     chmod -R a+x $H3_CLI_HOME/bin
 #    
 #     # verify
-#     echo "[.] verifying $H3_CLI_HOME/bin/yq ... "
+#     echo "[.] Verifying $H3_CLI_HOME/bin/yq ... "
 #     yqv=`$H3_CLI_HOME/bin/yq --version`
 #     if [ $? -ne 0 ]; then
 #         rm -f $H3_CLI_HOME/bin/yq   # cleanup
@@ -152,28 +149,67 @@ echo "[.] DONE"
 # echo "[.] DONE"
 
 
-# 2. create .h3 profile
+# 2. 
+# create .h3 profile.
+# allow no API key to be specified.  in which case, we'll check if the {profile}.env already exists, and if it doesn't, 
+# we'll create it and prompt the user to populate it. 
 echo 
-profile_file="$HOME/.h3/default.env"
+API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with h3-env.
+H3_API_KEY=$1
+if [ -z "$H3_API_KEY" ]; then 
+    H3_API_KEY=$API_KEY_UNSPECIFIED
+fi
+
+# if H3_CLI_PROFILE is already set, use it, otherwise set to "default".
+if [ -z "$H3_CLI_PROFILE" ]; then
+    H3_CLI_PROFILE="default"
+fi
+
+# if ~/.h3/{profile}.env does not exist, create it and populate it with H3_API_KEY.
+profile_file="$HOME/.h3/$H3_CLI_PROFILE.env"
 if [ ! -e "$profile_file" ]; then 
-    echo "[.] creating h3-cli profile under $HOME/.h3 ..."
+    echo "[.] Creating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
     mkdir -p $HOME/.h3
     cat <<HERE > "$profile_file"
 H3_API_KEY=$H3_API_KEY
 HERE
     chmod -R 700 $HOME/.h3
-else 
-    echo "[.] updating h3-cli profile under $HOME/.h3 ..."
+
+# if ~/.h3/{profile}.env does exist, AND an api key was provided, then update the profile.
+elif [ "$H3_API_KEY" != "$API_KEY_UNSPECIFIED" ]; then
+    echo "[.] Updating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
     mv "$profile_file" "$profile_file.bak"
     cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/" > "$profile_file"
+
+# the profile exists, and H3_API_KEY was not provided.
+# read it in so H3_API_KEY gets set.  
+# down below we check if it's set to API_KEY_UNSPECIFIED and prompt the user to set it.
+else
+    echo "[.] h3-cli profile [$H3_CLI_PROFILE] already defined under $HOME/.h3 "
+    source "$profile_file"
 fi
+
 # delete existing cached jwt, if any
-jwt_file="$HOME/.h3/default.jwt"
+jwt_file="$HOME/.h3/$H3_CLI_PROFILE.jwt"
 rm -f "$jwt_file"
-echo "[.] DONE"
+
+# prompt the user if no API key was specified
+if [ "$H3_API_KEY" = "$API_KEY_UNSPECIFIED" ]; then
+    cat <<HERE
+
+[!] ACTION REQUIRED: 
+[!] Please set your API key in $profile_file. 
+[!] Or you can re-run this script and provide the API key as a parameter:  
+        $ bash install.sh {h3-api-key}
+
+HERE
+else
+    echo "[.] DONE"
+fi
 
 
-# 3. profile updates
+# 3. 
+# profile updates
 bash_profile=$HOME/.bash_profile
 if [ ! -e "$bash_profile" ]; then 
     bash_profile=$HOME/.bash_login
@@ -193,11 +229,6 @@ export H3_CLI_HOME=$H3_CLI_HOME
 export PATH="\$H3_CLI_HOME/bin:\$PATH"
 
 HERE
-
-
-
-
-
 
 
 

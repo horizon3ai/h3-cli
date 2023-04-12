@@ -1,0 +1,3 @@
+query q($op_id: String!) {
+    nodezero_script_url(op_id: $op_id) 
+}

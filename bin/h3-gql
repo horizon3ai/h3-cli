@@ -32,6 +32,7 @@ function read_jwt {
 # finds the graphql query file on the path (H3_CLI_GQL_PATH)
 # @returns the file name
 function find_query_file {
+    f=$1
     echolog "searching for GQL file $f in H3_CLI_GQL_PATH=$H3_CLI_GQL_PATH ..."
     if [[ $f == *"/"* ]]; then
         if [ -e "$f" ]; then
@@ -66,7 +67,6 @@ function find_query_file {
 # finds the graphql query file on the path (H3_CLI_GQL_PATH)
 # @returns the file contents
 function read_query {
-    f=$1
     ff=`find_query_file $1`
     if [ -z "$ff" ]; then
         return

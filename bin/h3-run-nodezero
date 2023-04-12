@@ -14,38 +14,33 @@
 source h3-env
 
 
-function exit_if_pentest_has_launched {
-    pentest="$1"
-    if [ -z "$pentest" ]; then
-        return 0
+# 1.
+# fetch the op_id from latest-pentest if necessary
+op_id="$1"
+if [ -z "$op_id" ]; then
+    pentest=`h3 latest-pentest`
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echo $pentest
+        exit $rc
     fi
     op_id=`cat <<<$pentest | jq -r .op_id`
-    pentest_name=`cat <<<$pentest | jq -r .name`
-    pentest_state=`cat <<<$pentest | jq -r .state`
-    if [ "$pentest_state" = "scheduled" -o "$pentest_state" = "preparing" -o "$pentest_state" = "installation_needed" ]; then
-        return 0
-    fi
-    echoerr "ERROR: Pentest \"$pentest_name\" with op_id $op_id has already launched; state=$pentest_state"
-    exit 1
-}
+fi
+ 
 
-
-# 1. 
-# read pentest and check if it has already launched 
-pentest=`h3 pentest $*`
+# 2.
+# fetch the nodezero_script_url and run it.
+# NOTE: this GQL request will fail if the op is not in a launchable state.
+res=`h3-gql nodezero_script_url $op_id` 
 rc=$?
-if [ $rc -ne 0 ]; then
-    echo $pentest
-    exit $rc
-fi
-exit_if_pentest_has_launched "$pentest"
-
-
-# 2. 
-# download and run NodeZero™ IFF this is a NodeZero pentest
-op_type=`cat <<<$pentest | jq -r .op_type`
-if [ "$op_type" = "NodeZero" ]; then
-    nodezero_script_url=`cat <<<$pentest | jq -r .nodezero_script_url`
+if [ $rc -eq 0 ]; then
+    nodezero_script_url=`cat <<<$res | jq -r .data.nodezero_script_url`
+    echoerr "INFO: Launching NodeZero for op_id: $op_id, via: curl \"$nodezero_script_url\" \| bash"
     curl "$nodezero_script_url" | bash 
-fi
+else
+    echo $res
+    exit $rc
+fi 
+
+
 

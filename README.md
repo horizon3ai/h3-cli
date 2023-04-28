@@ -17,7 +17,7 @@ of your environment or kicking off a pentest as part of a continuous integration
 ## Installation and initial setup
 
 The steps below will get you up and running quickly with h3-cli. These instructions were tested on 
-MacOS and Linux machines, and generally should work on any [POSIX-compliant](https://en.wikipedia.org/wiki/POSIX) system with bash support.
+macOS and Linux machines, and generally should work on any [POSIX-compliant](https://en.wikipedia.org/wiki/POSIX) system with bash support.
 
 If you plan to run _internal_ pentests using h3-cli, you should install h3-cli on the same Docker Host
 where you launch NodeZero.
@@ -204,19 +204,20 @@ The above command will download the zip file to `pentest-reports-{op_id}.zip` in
 
 ## Use cases
 
-[**Touchless NodeZero deployment.**](guides/touchless-nodezero.md) Deploy NodeZero on your Docker Host in a "touchless" way,
+* [**Automated NodeZero deployment.**](guides/touchless-nodezero.md) Deploy NodeZero on your Docker Host automatically,
 without having to manually copy+paste the NodeZero Launch Script.  [See this guide](guides/touchless-nodezero.md) 
 to learn how to deploy NodeZero automatically using h3-cli.
-
-[**Automated scheduling.**](guides/recurring-pentests.md) A common use case for h3-cli is running pentests automatically 
+* [**Automated scheduling.**](guides/recurring-pentests.md) A common use case for h3-cli is running pentests automatically 
 on a recurring basis, for example once a week or once a month. [See this guide](guides/recurring-pentests.md) to learn how to set 
 up recurring pentests using h3-cli.
-
-[**Monitoring pentests.**](guides/monitor-pentests.md) [See this guide](guides/monitor-pentests.md) to learn how to monitor pentests 
+* [**Monitoring pentests.**](guides/monitor-pentests.md) [See this guide](guides/monitor-pentests.md) to learn how to monitor pentests 
 using h3-cli.
-
-[**Paginating results.**](guides/paginate-results.md) [See this guide](guides/paginate-results.md) to learn how to paginate through 
+* [**Paginating results.**](guides/paginate-results.md) [See this guide](guides/paginate-results.md) to learn how to paginate through 
 large result sets using h3-cli.
+* [**JSON Parsing using `jq`.**](guides/json-parsing-with-jq.md) [See this guide](guides/json-parsing-with-jq.md) to learn how to 
+leverage the power of `jq` to parse JSON responses from h3-cli.  `jq` can parse specific fields, print the structure of a response,
+and even transform a JSON response to CSV.  
+
 
 
 ## Authentication & h3-cli profiles
@@ -323,6 +324,13 @@ h3 run-pentest '{"schedule_op_form":{"op_name":"your-op-name-here", "op_param_ma
 ```
 
 > Note that `h3 run-pentest` and `h3 run-pentest-and-nodezero` accept all the same optional parameters.
+
+
+To run a pentest and assign it to a [NodeZero Runner](guides/touchless-nodezero.md) named `my-nodezero-runner`:
+
+```shell
+h3 run-pentest '{"schedule_op_form":{"op_name":"Pentest created via h3-cli and launched via runner", "runner_name":"my-nodezero-runner"}}' 
+```
 
 
 ### Running external pentests

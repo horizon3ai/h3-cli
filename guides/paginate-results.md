@@ -13,7 +13,7 @@ to `page_input` within the query file.
 h3 gql action_logs '{"op_id":"your-op-id-here", "page_num":1, "page_size":100}' | jq .
 ```
 
-Here's an example shell script that paginates thru the full result set.
+Here's an example shell script that paginates through the full result set.
 It exits the loop when the query returns no further results.
 
 ```shell

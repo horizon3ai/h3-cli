@@ -28,7 +28,7 @@ HERE
 function sleepy {
     agent_name=$1
     sleep_s=60
-    echolog "[agent: $agent_name] Sleeping for $sleep_s seconds"
+    echolog "[$agent_name] Sleeping for $sleep_s seconds"
     sleep $sleep_s
 }
 
@@ -44,7 +44,7 @@ fi
 
 # 2.
 # periodically poll for the next command to run
-echoerr "[agent: $agent_name] Starting agent: $agent_name"
+echoerr "[$agent_name] NodeZero Runner started."
 while [ 1 ]; do
 
     # a.
@@ -54,7 +54,7 @@ while [ 1 ]; do
     res=`h3-gql next_agent_command "$json_params"`
     rc=$?
     if [ $rc -ne 0 ]; then
-        echoerr "[agent: $agent_name] Failed to fetch the next agent command: rc=$rc, res=$res"
+        echoerr "[$agent_name] API request failed: rc=$rc, res=$res"
         sleepy "$agent_name"
         continue
     fi
@@ -69,13 +69,13 @@ while [ 1 ]; do
 
     # c.
     # run the command
-    echoerr "[agent: $agent_name] Received agent command: $agent_command"
+    echoerr "[$agent_name] Received command: $agent_command"
     command=`cat <<<$agent_command | jq -r .command`
-    echoerr "[agent: $agent_name] Running command in a separate process: $command"
+    echoerr "[$agent_name] Running command in a separate process: $command"
     eval "h3 $command" &
 
     sleepy "$agent_name"
 done
 
 
-echoerr "[agent: $agent_name] H3 agent process is exiting."
+echoerr "[$agent_name] H3 agent process is exiting."

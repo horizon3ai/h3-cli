@@ -61,7 +61,7 @@ rc=$?
 if [ $rc -eq 0 ]; then
     cat <<<$res | jq .data.create_scheduled_action
 else
-    echo $res
+    echo "$res"
     exit $rc
 fi
 

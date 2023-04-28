@@ -1,6 +1,33 @@
-query q($uuid: String!) { 
-    op_template(op_template_uuid:$uuid) {
-        ...OpTemplateFragment
+#
+# This mutation is provided as an example.
+# Customize as needed and submit it using: 
+#   $ h3 gql save_op_template
+# API documentation can be found at docs.horizon3.ai.
+#
+mutation m { 
+    save_op_template(
+        op_template_name: "My template", 
+        schedule_op_form: {
+            op_name: "My op",
+            runner_name: "my-runner",
+            op_param_max_scope: "10.0.220.254, 10.0.229.1",
+            osint_domains: [
+                "example.com",
+            ],
+            osint_company_names: [
+                "my company",
+            ],
+            git_accounts: [
+                { 
+                    name: "my-git-account"
+                    source: GitHub
+                }
+            ]
+        }
+    ) { 
+        op_template {
+            ...OpTemplateFragment
+        }
     }
 }
 
@@ -14,6 +41,7 @@ fragment OpTemplateFragment on OpTemplate {
     row_created_at
     row_updated_at
 }
+
 
 
 fragment ScheduleOpFormFragment on ScheduleOpForm {
@@ -33,11 +61,11 @@ fragment ScheduleOpFormFragment on ScheduleOpForm {
     }
     aws_account_ids
     asset_group_uuid
+    runner_name
     start_paused
     minimum_run_time
     maximum_run_time
     network_interface
-    runner_name
 }
 
  
@@ -51,7 +79,6 @@ fragment FeatureFlagFragment on FeatureFlag {
     risk
     enables_min_runtime
     enables_password_spray
-    is_new
 }
 
 fragment GitAccountFragment on GitAccount {

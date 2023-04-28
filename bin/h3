@@ -43,6 +43,9 @@ h3 run-pentests {input-file}        # Reads {options} line-by-line from the give
 h3 pause-pentest [{op_id}]          # Pauses the given {op_id}, or latest-pentest by default.
 h3 resume-pentest [{op_id}]         # Resumes the given {op_id}, or latest-pentest by default.
 h3 cancel-pentest [{op_id}]         # Ends the given {op_id}, or latest-pentest by default.
+h3 archive-pentest {op_id}          # Archive the given {op_id}
+h3 unarchive-pentest {op_id}        # Un-archive the given {op_id}
+h3 delete-pentest {op_id}           # Delete the given {op_id}. This action cannot be un-done.
 h3 pentest-reports [{op_id}]        # Downloads pentest-reports-{op_id}.zip for the given {op_id}, or latest-pentest by default.
 h3 clients [{search}]               # List of client accounts this user has access to, optionally filtered by {search}.
 h3 users                            # List of users with access to the current client account.
@@ -51,18 +54,20 @@ h3 op-template {uuid}               # Pentest template with the given uuid.
 h3 asset-groups [{search}]          # List of asset groups in the account, optionally filtered by {search}.
 h3 asset-group {uuid}               # The asset group with the given uuid.
 h3 auth [force]                     # Authenticate to the API.
-h3 gql {graphql-file}               # Run the GraphQL request in the given {graphql-file}.
+h3 gql {graphql-file} [{options}]   # Run the GraphQL request in the given {graphql-file}.
+h3 gql-describe {graphql-file} [{options}]   
+                                    # Run the GraphQL request and describe the JSON response structure using jq -rf filters/to_struct.jq
 h3 checkenv                         # Run the checkenv script to check for NodeZero compatibility.
 
 
--------
-Agents:
+-----------------
+NodeZero Runners:
 
-h3 agents                           # List of agents in the current client account.
-h3 start-agent {name} {log-file}    # Runs an agent as a background process and assigns it the given {name}.  The agent logs to {log-file}.
-h3 hello-agent {name}               # Sends a hello-world command to the agent with the assigned {name}.
-h3 stop-agent                       # Stops the agent running on the local machine.
-h3 ps-agent                         # Shows the running agent process.
+h3 runners                          # List of NodeZero Runners in the current client account.
+h3 start-runner {name} {log-file}   # Runs a NodeZero Runner as a background process and assigns it the given {name}.  The Runner logs to {log-file}.
+h3 hello-runner {name}              # Sends a hello-world command to the Runner with the assigned {name}.
+h3 stop-runner                      # Stops all Runner processes on the local machine.
+h3 ps-runner                        # Shows all Runner processes on the local machine.
 
 
 ------------------
@@ -119,7 +124,7 @@ function cmd_pentest {
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq .data.pentest
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -135,7 +140,7 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.pentests_page.pentests[] | {op_id, name, state, scheduled_at, completed_at, etl_completed_at, hosts_count, impacts_count, weaknesses_count, credentials_count}'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -151,7 +156,7 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.asset_groups_page.asset_groups[]'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -167,7 +172,7 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.asset_group'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -183,7 +188,7 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.client_accounts_page.client_accounts[]'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -195,7 +200,7 @@ function cmd_user_accounts {
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.user_accounts[]'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -211,7 +216,7 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.op_templates[]'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -227,7 +232,7 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq '.data.op_template'
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -239,7 +244,7 @@ function cmd_whoami {
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq .data.session_user_account
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -251,7 +256,7 @@ function cmd_create_pentest {
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq .data.schedule_op_template.op
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
@@ -315,7 +320,7 @@ function ps_agent {
 
 
 function pkill_agent {
-    echoerr "Killing any running agents via: pkill -f h3-start-agent"
+    echoerr "Killing all NodeZero Runner processes ..."
     ps_agent
     pkill -f h3-start-agent
     sleep 2
@@ -326,15 +331,17 @@ function cmd_start_agent {
     agent_name=$1
     log_file=$2
     if [ -z "$agent_name" -o -z "$log_file" ]; then
-        echo "agent_name and log_file are required"
+        echo "runner_name and log_file are required"
         return 1
     fi
-    pkill_agent
-    echoerr "Starting agent via: nohup h3-start-agent \"$agent_name\" < /dev/null >> \"$log_file\" 2>&1 &"
+    # pkill_agent
+    # echoerr "Starting NodeZero Runner via: nohup h3-start-agent \"$agent_name\" < /dev/null >> \"$log_file\" 2>&1 &"
+    echoerr "Starting NodeZero Runner $agent_name ..."
     nohup h3-start-agent "$agent_name" < /dev/null >> "$log_file" 2>&1 &
     rc=$?
     if [ $rc -eq 0 ]; then 
-        echoerr "Stream the agent logs via: tail -f $log_file"
+        ps_agent
+        echoerr "Stream the NodeZero Runner logs via: tail -f $log_file"
     fi
     return $rc
 }
@@ -350,11 +357,39 @@ HERE
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq .data.hello_agent
     else
-        echo $res
+        echo "$res"
     fi 
     return $rc
 }
 
+
+function cmd_archive_pentest {
+    op_id="$1"
+    is_archived="$2"
+    json_params=`cat <<HERE
+{"op_id":"$op_id","update_op_input":{"is_archived":$is_archived}}
+HERE
+`
+    res=`h3-gql update_op $json_params`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.update_op'
+    else echo "$res"; fi
+    return $rc
+}
+
+
+function cmd_delete_pentest {
+    op_id="$1"
+    json_params=`cat <<HERE
+{"op_id":"$op_id","update_op_input":{"is_deleted":true}}
+HERE
+`
+    res=`h3-gql update_op $json_params`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.update_op'
+    else echo "$res"; fi
+    return $rc
+}
 
 
 # -----------
@@ -402,7 +437,10 @@ elif [ "$cmd" = "pentest" ]; then
     cmd_pentest $*
 
 elif [ "$cmd" = "latest-pentest" ]; then
-    h3-gql latest_pentest $* | jq .data.pentests_page.pentests[]
+    res=`h3-gql latest_pentest $*`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.pentests_page.pentests[]'
+    else echo "$res"; fi
 
 elif [ "$cmd" = "run-pentest" -o "$cmd" = "schedule-pentest" ]; then
     cmd_create_pentest $*
@@ -424,6 +462,15 @@ elif [ "$cmd" = "pause-pentest" ]; then
 
 elif [ "$cmd" = "resume-pentest" ]; then
     h3-resume-pentest $*
+
+elif [ "$cmd" = "archive-pentest" ]; then
+    cmd_archive_pentest $* "true"
+
+elif [ "$cmd" = "unarchive-pentest" ]; then
+    cmd_archive_pentest $* "false"
+
+elif [ "$cmd" = "delete-pentest" ]; then
+    cmd_delete_pentest $*
 
 elif [ "$cmd" = "pentest-reports" ]; then
     h3-pentest-reports $*
@@ -449,20 +496,23 @@ elif [ "$cmd" = "asset-groups" ]; then
 elif [ "$cmd" = "asset-group" ]; then
     cmd_asset_group $*
 
-elif [ "$cmd" = "start-agent" ]; then
+elif [ "$cmd" = "start-agent" -o "$cmd" = "start-runner" ]; then
     cmd_start_agent "$@"
 
-elif [ "$cmd" = "stop-agent" ]; then
+elif [ "$cmd" = "stop-agent" -o "$cmd" = "stop-runner" ]; then
     pkill_agent
 
-elif [ "$cmd" = "ps-agent" ]; then
+elif [ "$cmd" = "ps-agent" -o "$cmd" = "ps-runner" ]; then
     ps_agent
 
-elif [ "$cmd" = "hello-agent" ]; then
+elif [ "$cmd" = "hello-agent" -o "$cmd" = "hello-runner" ]; then
     cmd_hello_agent $*
 
-elif [ "$cmd" = "agents" ]; then
-    h3-gql agents | jq .data.agents[]
+elif [ "$cmd" = "agents" -o "$cmd" = "runners" ]; then
+    res=`h3-gql agents`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.agents[]'
+    else echo "$res"; fi
 
 elif [ "$cmd" = "create-scheduled-action" ]; then
     h3-create-scheduled-action "$@"
@@ -474,7 +524,10 @@ elif [ "$cmd" = "trigger-scheduled-action" ]; then
     h3-trigger-scheduled-action "$@"
 
 elif [ "$cmd" = "schedules" -o "$cmd" = "schedule" ]; then
-    h3-gql schedules | jq '.data.schedules[]'
+    res=`h3-gql schedules`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.schedules[]'
+    else echo "$res"; fi
 
 elif [ "$cmd" = "enable-schedule" ]; then
     h3-enable-schedule "$@"
@@ -484,6 +537,12 @@ elif [ "$cmd" = "disable-schedule" ]; then
 
 elif [ "$cmd" = "utc" ]; then
     date -u
+
+elif [ "$cmd" = "gql-describe" ]; then
+    res=`h3-gql $*`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq
+    else echo "$res"; fi
 
 else 
     echoerr "ERROR: unrecognized command: \"$cmd\".  Run \"h3 help\" for usage info."

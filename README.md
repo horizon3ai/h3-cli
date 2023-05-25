@@ -26,16 +26,31 @@ It is assumed you already have an account with Horizon3.ai.  If not, sign up
 at [https://portal.horizon3ai.com/](https://portal.horizon3ai.com/).
 
 
-### 1. Obtain an API key
+### 1. Create an API key
 
-An API key is required to access the H3 API.  Obtain one from the Portal under the User -> Settings menu: [https://portal.horizon3ai.com/settings/api](https://portal.horizon3ai.com/settings/api).
+An API key is required to access the H3 API.  You can create one in the Portal under the [**User -> Account Settings**](https://portal.horizon3ai.com/account-settings) menu.
 
-Keep your API key secure, as anyone with your API key can access your H3 account.  
+When creating an API key you must assign it a role that controls its permissions.  The available roles are:
+
+* **User:** Basic read/write permissions. The API key can run pentests and read results.
+* **Read-only:** The API key can read pentest results, but cannot run pentests.
+* **NodeZero Runner:** A specialized, heavily restricted role designed specifically for [NodeZero Runners](guides/touchless-nodezero.md).  
+
+We recommend the **User** role if you're testing out h3-cli and want to experiment with all its features. 
+After that, you may want to use more restrictive permissions, based on your use case.  For example, if you only
+want to use h3-cli to set up a NodeZero Runner, we recommend using the **NodeZero Runner** role.  
+
+You can easily manage multiple API keys within the same h3-cli install.  Learn more [here](#authentication--h3-cli-profiles).
+
+❗ **Keep your API key secure, as anyone with your API key can access your H3 account.**  Think of an API key as
+a username + password rolled into one.  Anyone with the API key can access your account from anywhere.  h3-cli
+will store your API key under the `$HOME/.h3` directory.  This directory is created during installation and 
+configured with permissions such that only you can read or write to it.  
 
 
 ### 2. Install this git repo
 
-First, install this repo on your machine using the following git command within a shell/terminal.  
+Install the h3-cli git repo on your machine by executing the following git command within a shell/terminal session.  
 
 ```shell
 git clone https://github.com/horizon3ai/h3-cli
@@ -56,9 +71,9 @@ cd h3-cli
 bash install.sh your-api-key-here
 ```
 
-The install script will install dependencies (jq) and create your h3-cli profile under the `$HOME/.h3` directory.
-Your API key is stored in your h3-cli profile.  The profile permissions are restricted so that no other
-users (besides yourself) can read it.
+The install script will install dependencies (jq) and create your default h3-cli profile under the `$HOME/.h3` directory.
+Your API key is stored in your h3-cli profile.  The directory and profile permissions are restricted so that no other
+users (besides yourself) can read or write to it.
 
 The install script will ask you to edit your shell profile (`$HOME/.bash_profile` or `$HOME/.bash_login` or `$HOME/.profile`, depending
 on your operating system) to set the following environment variables:
@@ -74,6 +89,20 @@ h3
 ```
 
 If everything's installed correctly, you should see the h3-cli help text.
+
+
+## Upgrading h3-cli
+
+We release new features, bug fixes, and other updates for the h3-cli every month.  Upgrading your installation is easy:
+
+#### Via git
+
+If you used `git clone` to install the repo, then simply run `git pull` to install the latest version.
+
+#### Via zip download
+
+If you downloaded the repo as a zip file, then re-download the zip file and unzip it to the same location (in other words replace
+your existing h3-cli installation with the new zip).
 
 
 ## Getting started 
@@ -204,19 +233,14 @@ The above command will download the zip file to `pentest-reports-{op_id}.zip` in
 
 ## Use cases
 
-* [**Automated NodeZero deployment.**](guides/touchless-nodezero.md) Deploy NodeZero on your Docker Host automatically,
-without having to manually copy+paste the NodeZero Launch Script.  [See this guide](guides/touchless-nodezero.md) 
-to learn how to deploy NodeZero automatically using h3-cli.
-* [**Automated scheduling.**](guides/recurring-pentests.md) A common use case for h3-cli is running pentests automatically 
-on a recurring basis, for example once a week or once a month. [See this guide](guides/recurring-pentests.md) to learn how to set 
-up recurring pentests using h3-cli.
-* [**Monitoring pentests.**](guides/monitor-pentests.md) [See this guide](guides/monitor-pentests.md) to learn how to monitor pentests 
-using h3-cli.
-* [**Paginating results.**](guides/paginate-results.md) [See this guide](guides/paginate-results.md) to learn how to paginate through 
-large result sets using h3-cli.
-* [**JSON Parsing using `jq`.**](guides/json-parsing-with-jq.md) [See this guide](guides/json-parsing-with-jq.md) to learn how to 
-leverage the power of `jq` to parse JSON responses from h3-cli.  `jq` can parse specific fields, print the structure of a response,
-and even transform a JSON response to CSV.  
+* [**Automated NodeZero deployment.**](guides/touchless-nodezero.md) Learn how to deploy NodeZero on your Docker Host automatically,
+without having to manually copy+paste the NodeZero Launch Script, using h3-cli.
+* [**Automated scheduling.**](guides/recurring-pentests.md) Learn how to run pentests automatically on a regular schedule, 
+for example once a week or once a month, using h3-cli.
+* [**Monitoring pentests.**](guides/monitor-pentests.md) Learn how to monitor pentests using h3-cli.
+* [**Paginating results.**](guides/paginate-results.md) Learn how to paginate through large result sets using h3-cli.
+* [**JSON Parsing using `jq`.**](guides/json-parsing-with-jq.md) Learn how to leverage the power of `jq` to parse JSON responses 
+from h3-cli.  `jq` can parse specific fields, print the structure of a response, and even transform a JSON response to CSV.  
 
 
 
@@ -227,7 +251,7 @@ There's nothing explicit you need to do to authenticate.  This section documents
 underlying mechanics.
 
 h3-cli reads your `H3_API_KEY` from your h3-cli profile (under `$HOME/.h3`) to authenticate 
-to the Horizon3.ai API and establishes a (temporary) session.  The session token (a JWT) is 
+to the Horizon3.ai API and establish a (temporary) session.  The session token (a JWT) is 
 cached under `$HOME/.h3`. The session token expires after 1 hour, at which point h3-cli will
 automatically re-authenticate and re-establish a session.
 
@@ -251,37 +275,53 @@ h3 auth force
 ### h3-cli profiles
 
 You can manage multiple h3-cli authentication profiles under the same `$HOME/.h3` directory.
-When you first install h3-cli it will automatically create an initial profile named `default`.
-If you wish to create a new profile, use the following command:
+Each h3-cli profile has its own API key.
+
+When you first install h3-cli it will automatically create an initial profile named `default`
+with the API key you provided to `install.sh`. 
+
+If you wish to create another profile with a different API key, use the following command:
 
 ```shell
 h3 save-profile my-profile {api-key}
 ```
 
-This will create a profile named `my-profile` under `$HOME/.h3` and will apply the given `{api_key}` to it.
-To switch to this profile, use the following command (note the leading dot `.`): 
+This will create a profile named `my-profile` under `$HOME/.h3` for the given `{api_key}`.
+To activate the profile in your current shell session, use the following command (note the leading dot `.`): 
 
 ```shell
 . h3 profile my-profile
 ```
 
-To switch back to the default profile:
+You can verify the currently active profile using `h3 profile`, and view details about its API key using `h3 whoami`:
+
+```shell
+h3 profile
+h3 whoami
+```
+
+You can save multiple API keys under different h3-cli profiles and switch between them as needed using the command above.
+For example, to switch back to the `default` profile:
 
 ```shell
 . h3 profile default
 ```
 
-To list out all your profiles:
+To view the list of h3-cli profiles under your `$HOME/.h3` directory:
 
 ```shell
 h3 profiles
 ```
 
-To list the currently active profile:
+You can delete a profile from your `$HOME/.h3` directory using: 
 
 ```shell
-h3 profile
+h3 delete-profile {name}
 ```
+
+This will remove the profile named `{name}` and its API key from your `$HOME/.h3` directory on the local machine. 
+Note that it will NOT *revoke* the API key; it only deletes it from the local machine. You can revoke the API key from the Portal.
+
 
 
 ## Running pentests with h3-cli

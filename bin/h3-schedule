@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Fetch a specific schedule.
+#
+# usage: h3-schedule {schedule-name} 
+#
+
+# 0.
+# include common utils
+source h3-env
+
+# 1.
+# parse args
+schedule_name=$1
+if [ -z "$schedule_name" ]; then
+    echoerr "name is required"
+    exit 1
+fi
+
+# 2.
+# call GQL
+json_params=`cat <<HERE
+{"name":"$schedule_name"}
+HERE
+`
+res=`h3-gql schedule "$json_params"`
+rc=$?
+if [ $rc -eq 0 ]; then 
+    cat <<<$res | jq '.data.schedule'
+else 
+    echo "$res"; 
+    exit $rc
+fi
+

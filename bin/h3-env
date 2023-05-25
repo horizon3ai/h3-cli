@@ -9,6 +9,7 @@
 # H3_AUTH_URL
 # H3_GQL_URL
 # H3_CLI_GQL_PATH
+# H3_CLI_LOGGING_DIR
 #
 
 # pull in util fns
@@ -21,6 +22,20 @@ fi
 if [ ! -e "$H3_CLI_PROFILES_DIR" ]; then
     echoerr "ERROR: h3 profile directory H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR does not exist. Please create and define a profile. See README for more info."
     exit 1
+fi
+
+# logging for nodezero runners
+if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+    H3_CLI_LOGGING_DIR="$LOGDIR"
+fi
+if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+    H3_CLI_LOGGING_DIR="$TMPDIR"
+fi
+if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+    H3_CLI_LOGGING_DIR="/tmp"
+fi
+if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+    H3_CLI_LOGGING_DIR="."
 fi
 
 # check env

@@ -1,6 +1,8 @@
-query {
-    agents {
-        ...AgentFragment
+mutation m($agent_name: String!) {
+    delete_agent(agent_name:$agent_name) {
+        agent {
+            ...AgentFragment
+        }
     }
 }
   
@@ -12,6 +14,8 @@ fragment AgentFragment on Agent {
     last_heartbeat_at
     last_heartbeat_time_ago
     created_at
+    is_deleted
+    deleted_at
     last_command {
         ...AgentCommandFragment
     }
@@ -25,4 +29,3 @@ fragment AgentCommandFragment on AgentCommand {
     completed_at
     exit_status
 }
-

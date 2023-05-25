@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Tail the log for a given agent.
+#
+# usage: h3-tail-agent {agent-name} 
+#
+
+# 0.
+# include common utils
+source h3-env
+
+
+res=`h3-agent "$@"`
+rc=$?
+if [ $rc -ne 0 ]; then 
+    echo "$res"; 
+    exit $rc
+fi
+
+log_file=`cat <<<$res | jq -r '.log_file'`
+if [ -z "$log_file" -o "$log_file" = "null" ]; then
+    echoerr "[ERROR] No log file is registered with the Runner. The Runner may need to be upgraded to the latest h3-cli and restarted."
+    exit 1
+fi
+
+tail -n 100 -f "$log_file"
+

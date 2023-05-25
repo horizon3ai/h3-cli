@@ -10,3 +10,4 @@ tmp
 bin/jq
 bin/yq
 queries-admin
+.DS_Store

@@ -100,10 +100,14 @@ tail -f /tmp/my-nodezero-runner.log
 
 ### Additional notes 
 
-* The Runner process runs as the user that invoked `h3 start-runner`.
-* The Runner process is disconnected from the shell session and runs in the background. It continues to run after the shell session is closed.
-* The Runner will NOT restart itself after a system reboot. To enable this, you can wire up `h3 start-runner` to your system launcher, eg. systemd, launchd, cron, etc.
-* To terminate the Runner process, use `h3 stop-runner`.
+* **Runs as:** The Runner process runs as the user that invoked `h3 start-runner`.
+* **Background process:** The Runner process is disconnected from the shell session and runs in the background. It continues to run after the shell session is closed.
+* **System reboot:** The Runner will NOT restart itself after a system reboot. To enable this, you can wire up `h3 start-runner` to your system launcher, eg. systemd, launchd, cron, etc.
+* **Stop Runner:** To terminate the Runner process, use `h3 stop-runner`.
+* **Delete Runner:** To delete a Runner, use `h3 delete-runner {name}`.
+    * If a deleted Runner is still running, it will be recreated upon the next heartbeat.
+* **Rename Runner:** You can NOT rename an existing Runner; however you can stop (and optionally delete) a Runner, then start a new Runner with a different name.
+    * ❗ **NOTE:** if you saved the old Runner name to an op template, the template will need to be updated to use the new Runner name.
 
 
 ## Troubleshooting
@@ -127,7 +131,28 @@ Look for errors in the log:
 tail -f /tmp/my-nodezero-runner.log
 ```
 
+
+### View Runner command errors
+
+Use the following to list out the last 5 comands executed by the Runner.  The output includes the exit status and output from the command:
+
+```shell
+h3 runner-commands {runner_name}
+```
+
+
 ### Docker permission errors
 
 If your Docker Host requires `sudo` to run `docker` commands, then you may need to start the Runner using `sudo` as well.
 
+
+### Retry
+
+After resolving issues with your Runner, you can retry a NodeZero deployment by directly queuing a request to the Runner
+using the following command.  Substitute `{op_id}` and `{runner_name}` for your specific usage.  
+
+```shell
+h3 run-nodezero-on-runner {op_id} {runner_name}
+```
+
+> You can use `h3 pentest` to get the `op_id` for the most recently created pentest.

@@ -64,16 +64,24 @@ h3 checkenv                         # Run the checkenv script to check for NodeZ
 NodeZero Runners:
 
 h3 runners                          # List of NodeZero Runners in the current client account.
+h3 runner {name}                    # List the NodeZero Runner with the given {name}.
+h3 runner-commands {name}           # List the NodeZero Runner with the given {name} and the last 5 commands it ran.
 h3 start-runner {name} {log-file}   # Runs a NodeZero Runner as a background process and assigns it the given {name}.  The Runner logs to {log-file}.
 h3 hello-runner {name}              # Sends a hello-world command to the Runner with the assigned {name}.
 h3 stop-runner                      # Stops all Runner processes on the local machine.
 h3 ps-runner                        # Shows all Runner processes on the local machine.
+h3 tail-runner {name}               # Tail the log for the NodeZero Runner on the local machine with the given {name}.
+h3 delete-runner {name}             # Delete the Runner with the given {name}.  This will NOT stop the Runner if it is still running.
+                                    # If a deleted Runner is still running, it will be recreated upon the next heartbeat.
+h3 run-nodezero-on-runner {op_id} {runner_name}
+                                    # Run NodeZero for the given {op_id} on the Runner with the given {runner_name}.
 
 
 ------------------
 Scheduled actions:
 
 h3 schedules                        # The list of Schedule objects in the account and their associated actions.
+h3 schedule {name}                  # List the Schedule with the given {name}.
 h3 create-scheduled-action {schedule-name} {cron-expression} {action} [{params}]
                                     # Create or update the given scheduled action.  Supports hourly resolution for the cron-expression.
                                     # cron-expression format: 'min hour day month dow'
@@ -95,6 +103,8 @@ h3 profile                          # Show the current h3-cli profile.
 . h3 profile {name}                 # Set the current h3-cli profile to the profile with the given name.
 h3 save-profile {name} {api-key}    # Create or updates an h3-cli profile with the given name and API key.
                                     # h3-cli profiles are stored under the ~/.h3 directory.
+h3 delete-profile {name}            # Delete the h3-cli profile with the given name. This will NOT revoke the API key.
+                            
 
 ------------
 Other notes:
@@ -298,18 +308,38 @@ function cmd_profile {
 function cmd_add_profile {
     profile_name=$1
     api_key=$2
-    profile_file="$HOME/.h3/$profile_name.env"
+    if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+        H3_CLI_PROFILES_DIR="$HOME/.h3"
+    fi
+    profile_file="$H3_CLI_PROFILES_DIR/$profile_name.env"
     if [ ! -e "$profile_file" ]; then 
-        echoerr "Creating h3-cli profile $profile_name under $HOME/.h3 ..."
-        mkdir -p $HOME/.h3
+        echoerr "Creating h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
+        mkdir -p $H3_CLI_PROFILES_DIR
         cat <<HERE > "$profile_file"
 H3_API_KEY=$api_key
 HERE
-        chmod -R 700 $HOME/.h3
+        chmod -R 700 $H3_CLI_PROFILES_DIR
     else 
         mv "$profile_file" "$profile_file.bak"
-        echoerr "Updating h3-cli profile $profile_name under $HOME/.h3 ..."
+        echoerr "Updating h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
         cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$api_key/" > "$profile_file"
+    fi
+}
+
+
+function cmd_delete_profile {
+    profile_name=$1
+    if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+        H3_CLI_PROFILES_DIR="$HOME/.h3"
+    fi
+    profile_file="$H3_CLI_PROFILES_DIR/$profile_name.env"
+    profile_file_bak="$H3_CLI_PROFILES_DIR/$profile_name.env.bak"
+    jwt_file="$H3_CLI_PROFILES_DIR/$profile_name.jwt"
+    if [ -e "$profile_file" ]; then 
+        echoerr "Deleting h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
+        rm -f "$profile_file" "$jwt_file" "$profile_file_bak"
+    else 
+        echoerr "Profile $profile_name does not exist under $H3_CLI_PROFILES_DIR ..."
     fi
 }
 
@@ -337,11 +367,11 @@ function cmd_start_agent {
     # pkill_agent
     # echoerr "Starting NodeZero Runner via: nohup h3-start-agent \"$agent_name\" < /dev/null >> \"$log_file\" 2>&1 &"
     echoerr "Starting NodeZero Runner $agent_name ..."
-    nohup h3-start-agent "$agent_name" < /dev/null >> "$log_file" 2>&1 &
+    nohup h3-start-agent "$agent_name" "$log_file" < /dev/null >> "$log_file" 2>&1 &
     rc=$?
     if [ $rc -eq 0 ]; then 
         ps_agent
-        echoerr "Stream the NodeZero Runner logs via: tail -f $log_file"
+        echoerr "Stream the NodeZero Runner logs via: h3 tail-runner \"$agent_name\" "
     fi
     return $rc
 }
@@ -426,6 +456,9 @@ elif [ "$cmd" = "profile" ]; then
 
 elif [ "$cmd" = "add-profile" -o "$cmd" = "save-profile" ]; then
     cmd_add_profile $*
+
+elif [ "$cmd" = "delete-profile" ]; then
+    cmd_delete_profile $*
 
 elif [ "$cmd" = "gql" ]; then
     h3-gql $*
@@ -514,6 +547,21 @@ elif [ "$cmd" = "agents" -o "$cmd" = "runners" ]; then
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.agents[]'
     else echo "$res"; fi
 
+elif [ "$cmd" = "agent" -o "$cmd" = "runner" ]; then
+    h3-agent "$@"
+
+elif [ "$cmd" = "agent-commands" -o "$cmd" = "runner-commands" ]; then
+    h3-agent-commands "$@"
+
+elif [ "$cmd" = "tail-agent" -o "$cmd" = "tail-runner" ]; then
+    h3-tail-agent "$@"
+
+elif [ "$cmd" = "run-nodezero-on-agent" -o "$cmd" = "run-nodezero-on-runner" ]; then
+    h3-run-nodezero-on-agent "$@"
+
+elif [ "$cmd" = "delete-agent" -o "$cmd" = "delete-runner" ]; then
+    h3-delete-agent "$@"
+
 elif [ "$cmd" = "create-scheduled-action" ]; then
     h3-create-scheduled-action "$@"
 
@@ -523,11 +571,14 @@ elif [ "$cmd" = "delete-scheduled-action" ]; then
 elif [ "$cmd" = "trigger-scheduled-action" ]; then
     h3-trigger-scheduled-action "$@"
 
-elif [ "$cmd" = "schedules" -o "$cmd" = "schedule" ]; then
+elif [ "$cmd" = "schedules" ]; then
     res=`h3-gql schedules`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.schedules[]'
     else echo "$res"; fi
+
+elif [ "$cmd" = "schedule" ]; then
+    h3-schedule "$@"
 
 elif [ "$cmd" = "enable-schedule" ]; then
     h3-enable-schedule "$@"

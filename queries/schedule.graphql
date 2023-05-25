@@ -1,5 +1,5 @@
-query {
-    schedules {
+query q($name: String!) {
+    schedule(name: $name) {
         ...ScheduleFragment
     }
 }

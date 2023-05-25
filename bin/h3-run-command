@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# Called by the agent/runner when it receives a command to run.
+#
+# Runs a given h3-cli command.
+# Logs the output to a file.
+# Reports back the exit status and log.
+#
+# usage: $ h3 run-command {cmd-uuid} {cmd}
+#
+#
+
+# 0.
+# include common utils
+source h3-env
+
+
+# 1. 
+# parse input
+command_uuid=$1
+if [ -z "$command_uuid" ]; then
+    echoerr "command-uuid is required"
+    exit 1
+fi
+
+command=$2
+if [ -z "$command" ]; then
+    echoerr "command is required"
+    exit 1
+fi
+
+log_file="$H3_CLI_LOGGING_DIR/$command_uuid.log"
+
+# 2. 
+# run the command
+# log output to a file AND to stdout (using tee).
+# We log to stdout so the output also shows in the agent/runner log.
+echoerr "RUN: h3 $command; LOG FILE: $log_file" 
+eval "h3 $command" 2>&1 | tee "$log_file" 
+rc=${PIPESTATUS[0]}
+
+# 3.
+# report back 
+json_params=`cat <<HERE
+{"input":{"agent_command_uuid":"$command_uuid","exit_status":"$rc"}}
+HERE
+`
+echoerr "COMPLETE: h3 $command; RC: $rc; posting results ..." 
+res=`h3-gql agent_command_complete "$json_params"`
+rc=$?
+if [ $rc -eq 0 ]; then 
+    # upload the log
+    log_upload_url=`cat <<<$res | jq -r '.data.agent_command_complete.log_upload_url'`
+    curl -X PUT -H "Content-Type: text/plain" -T "$log_file" $log_upload_url
+    rc=$?
+else 
+    echo "$res"
+fi
+
+echoerr "REMOVING LOG FILE: $log_file"
+rm "$log_file"
+
+exit $rc

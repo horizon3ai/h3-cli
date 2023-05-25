@@ -1,5 +1,5 @@
-query {
-    agents {
+query q($name: String!) {
+    agent(name:$name) {
         ...AgentFragment
     }
 }

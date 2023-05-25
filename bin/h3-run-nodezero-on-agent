@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# Queues a comand to the given agent/runner to run NodeZero for the given op.
+#
+# usage: h3-run-nodezero-on-agent {op-id} {agent-name} 
+#
+
+# 0.
+# include common utils
+source h3-env
+
+# 1.
+# parse args
+op_id=$1
+if [ -z "$op_id" ]; then
+    echoerr "op_id is required"
+    exit 1
+fi
+
+agent_name=$2
+if [ -z "$agent_name" ]; then
+    echoerr "name is required"
+    exit 1
+fi
+
+# 2.
+# call GQL
+json_params=`cat <<HERE
+{"op_id":"$op_id", "agent_name":"$agent_name"}
+HERE
+`
+res=`h3-gql run_nodezero_on_agent "$json_params"`
+rc=$?
+if [ $rc -eq 0 ]; then 
+    cat <<<$res | jq '.data.run_nodezero_on_agent.agent_command'
+else 
+    echo "$res"; 
+    exit $rc
+fi
+

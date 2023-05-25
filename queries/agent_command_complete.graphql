@@ -1,0 +1,19 @@
+mutation m($input:AgentCommandCompleteInput!) {
+    agent_command_complete(input:$input) {
+        agent_command {
+            ...AgentCommandFragment
+        }
+        log_upload_url
+    }
+}
+  
+fragment AgentCommandFragment on AgentCommand {
+    uuid
+    agent_uuid
+    command
+    created_at
+    received_at
+    completed_at
+    exit_status
+}
+

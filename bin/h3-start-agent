@@ -5,7 +5,7 @@
 #
 # See: $ h3 start-agent
 #
-# usage: h3-start-agent {agent-name} 
+# usage: h3-start-agent {agent-name} {log-file}
 #
 
 # 0.
@@ -19,8 +19,9 @@ source h3-env
 function build_json_params {
     name=$1
     uname=$2
+    log_file=$3
     cat <<HERE
-{"input":{"name":"$name","uname":"$uname"}}
+{"input":{"name":"$name","uname":"$uname","log_file":"$log_file"}}
 HERE
 }
 
@@ -36,8 +37,15 @@ function sleepy {
 # 1.
 # parse args
 agent_name=$1
+log_file=$2
+
 if [ -z "$agent_name" ]; then
-    echoerr "agent-name is required"
+    echoerr "name is required"
+    exit 1
+fi
+
+if [ -z "$log_file" ]; then
+    echoerr "log-file is required"
     exit 1
 fi
 
@@ -50,7 +58,7 @@ while [ 1 ]; do
     # a.
     # fetch the next agent command
     uname=`uname -a`
-    json_params=`build_json_params "$agent_name" "$uname"`
+    json_params=`build_json_params "$agent_name" "$uname" "$log_file"`
     res=`h3-gql next_agent_command "$json_params"`
     rc=$?
     if [ $rc -ne 0 ]; then
@@ -70,9 +78,10 @@ while [ 1 ]; do
     # c.
     # run the command
     echoerr "[$agent_name] Received command: $agent_command"
+    command_uuid=`cat <<<$agent_command | jq -r .uuid`
     command=`cat <<<$agent_command | jq -r .command`
     echoerr "[$agent_name] Running command in a separate process: $command"
-    eval "h3 $command" &
+    h3-run-command "$command_uuid" "$command" &
 
     sleepy "$agent_name"
 done

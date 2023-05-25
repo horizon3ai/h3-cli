@@ -31,13 +31,41 @@ HERE
 }
 
 
+
+function refresh_jwt_fallback_eu {
+    refresh_jwt
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        # try eu
+        H3_AUTH_URL=https://api.horizon3ai.eu/v1/auth
+        H3_GQL_URL=https://api.horizon3ai.eu/v1/graphql
+        refresh_jwt 
+        rc=$?
+        if [ $rc -ne 0 ]; then
+            echoerr "ERROR: Authentication Failed. For more details, enable verbose logging (export H3_CLI_VERBOSE=1) and retry." 
+            return $rc
+        fi
+        # save eu URLs in profile
+        profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+        cat <<HERE >> "$profile"
+H3_AUTH_URL=$H3_AUTH_URL
+H3_GQL_URL=$H3_GQL_URL
+HERE
+        # force user to re-try so the new URLs are picked up
+        echoerr "REDIRECTED TO EU: Your profile has been redirected to our EU region. Please try again."
+        return 1
+    fi
+    return $rc
+}
+
+
 function refresh_jwt {
     echolog "authenticating to H3_AUTH_URL=$H3_AUTH_URL ..."
     res=`gen_jwt`
     # check if the curl request failed
     rc=$?
     if [ $rc -ne 0 ]; then
-        echoerr "ERROR: " $res
+        echolog "ERROR: " $res
         H3_API_JWT=""
         echo $H3_API_JWT > "$jwt_file"
         return $rc
@@ -45,7 +73,7 @@ function refresh_jwt {
     # check if we didn't get a token back
     token=`cat <<<$res | jq -r .token`
     if [ "$token" = "null" ]; then
-        echoerr "ERROR: " $res
+        echolog "ERROR: " $res
         H3_API_JWT=""
         echo $H3_API_JWT > "$jwt_file"
         return 1
@@ -70,7 +98,7 @@ function read_jwt {
         fi 
     fi
     if [ -z "$H3_API_JWT" ]; then
-        refresh_jwt
+        refresh_jwt_fallback_eu
     fi
 }
 
@@ -82,7 +110,7 @@ if [ -z "$cmd" ]; then
     read_jwt
 
 elif [ "$cmd" = "force" ]; then
-    refresh_jwt
+    refresh_jwt_fallback_eu
 fi
 
 rc=$?

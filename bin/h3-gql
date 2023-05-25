@@ -79,7 +79,7 @@ function read_query {
 
 # @returns gql response (json)
 function post_query {
-    echolog "posting GQL request ..."
+    echolog "posting GQL request to $H3_GQL_URL ..."
     q=`escape_quotes "$1"`
     v=`unescape_splat "$2"`
     echolog "q=$q"

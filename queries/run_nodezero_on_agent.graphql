@@ -1,0 +1,17 @@
+mutation m(
+    $op_id: String! 
+    $agent_name: String! 
+) {
+    run_nodezero_on_agent(op_id:$op_id, agent_name:$agent_name) {
+        agent_command {
+            ...AgentCommandFragment
+        }
+    }
+}
+  
+fragment AgentCommandFragment on AgentCommand {
+    uuid
+    agent_uuid
+    command
+    created_at
+}

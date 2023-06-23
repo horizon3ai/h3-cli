@@ -1,0 +1,7 @@
+#!/bin/bash 
+#
+# self-upgrade.
+#
+
+source h3-env
+bash $H3_CLI_HOME/easy_install.sh

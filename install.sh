@@ -223,7 +223,8 @@ fi
 cat <<HERE
 
 [!] ACTION REQUIRED: 
-[!] Add the following lines to $bash_profile, then re-login to your shell session to pick up the changes.
+[!] Run the following commands to add h3 to your command PATH. 
+[!] We also recommend adding them to $bash_profile, so that h3 is automatically added to the PATH when you login.
 
 export H3_CLI_HOME=$H3_CLI_HOME
 export PATH="\$H3_CLI_HOME/bin:\$PATH"

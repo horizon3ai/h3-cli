@@ -58,6 +58,9 @@ h3 gql {graphql-file} [{options}]   # Run the GraphQL request in the given {grap
 h3 gql-describe {graphql-file} [{options}]   
                                     # Run the GraphQL request and describe the JSON response structure using jq -rf filters/to_struct.jq
 h3 checkenv                         # Run the checkenv script to check for NodeZero compatibility.
+h3 version                          # The h3-cli version.
+h3 upgrade                          # Upgrade h3-cli to the latest version.
+h3 env                              # List h3-cli environment configuration.
 
 
 -----------------
@@ -66,9 +69,11 @@ NodeZero Runners:
 h3 runners                          # List of NodeZero Runners in the current client account.
 h3 runner {name}                    # List the NodeZero Runner with the given {name}.
 h3 runner-commands {name}           # List the NodeZero Runner with the given {name} and the last 5 commands it ran.
-h3 start-runner {name} {log-file}   # Runs a NodeZero Runner as a background process and assigns it the given {name}.  The Runner logs to {log-file}.
+h3 start-runner {name} [{log-file}] # Runs a NodeZero Runner as a background process and assigns it the given {name}.  
+                                    # {log-file} is optional; by default logs to \$H3_CLI_LOGGING_DIR/{name}.log.
 h3 hello-runner {name}              # Sends a hello-world command to the Runner with the assigned {name}.
-h3 stop-runner                      # Stops all Runner processes on the local machine.
+h3 stop-runner [{name}]             # Stops the Runner process with the given {name} on the local machine.
+                                    # If {name} is not provided, then it stops ALL Runner processes on the local machine.
 h3 ps-runner                        # Shows all Runner processes on the local machine.
 h3 tail-runner {name}               # Tail the log for the NodeZero Runner on the local machine with the given {name}.
 h3 delete-runner {name}             # Delete the Runner with the given {name}.  This will NOT stop the Runner if it is still running.
@@ -282,6 +287,7 @@ function cmd_env {
     echo "H3_API_KEY=$H3_API_KEY" 
     echo "H3_AUTH_URL=$H3_AUTH_URL" 
     echo "H3_GQL_URL=$H3_GQL_URL" 
+    echo "H3_CLI_LOGGING_DIR=$H3_CLI_LOGGING_DIR" 
     return $rc
 }
 
@@ -350,23 +356,35 @@ function ps_agent {
 
 
 function pkill_agent {
-    echoerr "Killing all NodeZero Runner processes ..."
+    agent_name=$1
     ps_agent
-    pkill -f h3-start-agent
+    if [ -z "$agent_name" ]; then 
+        echoerr "Killing all NodeZero Runner processes ..."
+        pkill -f "h3-start-agent"
+    else
+        echoerr "Killing NodeZero Runner process $agent_name ..."
+        pkill -f "h3-start-agent $agent_name "
+    fi
     sleep 2
+    ps_agent
 }
 
 
 function cmd_start_agent {
+    source h3-env
     agent_name=$1
     log_file=$2
-    if [ -z "$agent_name" -o -z "$log_file" ]; then
-        echo "runner_name and log_file are required"
+    if [ -z "$agent_name" ]; then
+        echo "runner_name is required"
         return 1
     fi
-    # pkill_agent
+    if [ -z "$log_file" ]; then
+        log_file="$H3_CLI_LOGGING_DIR/$agent_name.log"
+    fi
+    pkill_agent "$agent_name"
     # echoerr "Starting NodeZero Runner via: nohup h3-start-agent \"$agent_name\" < /dev/null >> \"$log_file\" 2>&1 &"
-    echoerr "Starting NodeZero Runner $agent_name ..."
+    echoerr "Starting NodeZero Runner $agent_name, logging to $log_file ..."
+    # NOTE: this command is dup'ed in h3 and h3-start-agent.
     nohup h3-start-agent "$agent_name" "$log_file" < /dev/null >> "$log_file" 2>&1 &
     rc=$?
     if [ $rc -eq 0 ]; then 
@@ -533,7 +551,7 @@ elif [ "$cmd" = "start-agent" -o "$cmd" = "start-runner" ]; then
     cmd_start_agent "$@"
 
 elif [ "$cmd" = "stop-agent" -o "$cmd" = "stop-runner" ]; then
-    pkill_agent
+    pkill_agent "$@"
 
 elif [ "$cmd" = "ps-agent" -o "$cmd" = "ps-runner" ]; then
     ps_agent
@@ -589,7 +607,16 @@ elif [ "$cmd" = "disable-schedule" ]; then
 elif [ "$cmd" = "utc" ]; then
     date -u
 
+elif [ "$cmd" = "version" ]; then
+    source h3-env
+    cat $H3_CLI_HOME/version.txt
+    echo
+
+elif [ "$cmd" = "upgrade" ]; then
+    h3-upgrade
+
 elif [ "$cmd" = "gql-describe" ]; then
+    source h3-env
     res=`h3-gql $*`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq

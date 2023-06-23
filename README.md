@@ -28,7 +28,7 @@ at [https://portal.horizon3ai.com/](https://portal.horizon3ai.com/).
 
 ### 1. Create an API key
 
-An API key is required to access the H3 API.  You can create one in the Portal under the [**User -> Account Settings**](https://portal.horizon3ai.com/account-settings) menu.
+An API key is required to access the H3 API.  You can create one in the Portal under the [User -> Account Settings](https://portal.horizon3ai.com/account-settings) menu.
 
 When creating an API key you must assign it a role that controls its permissions.  The available roles are:
 
@@ -48,9 +48,9 @@ will store your API key under the `$HOME/.h3` directory.  This directory is crea
 configured with permissions such that only you can read or write to it.  
 
 
-### 2. Install this git repo
+### 2. Install h3-cli 
 
-Install the h3-cli git repo on your machine by executing the following git command within a shell/terminal session.  
+Install the [h3-cli git repo](https://github.com/horizon3ai/h3-cli) on your machine by executing the following git command within a shell/terminal session.  
 
 ```shell
 git clone https://github.com/horizon3ai/h3-cli
@@ -93,7 +93,23 @@ If everything's installed correctly, you should see the h3-cli help text.
 
 ## Upgrading h3-cli
 
-We release new features, bug fixes, and other updates for the h3-cli every month.  Upgrading your installation is easy:
+We release new features, bug fixes, and other updates for the h3-cli every month.  Upgrade your installation using
+one of the methods below.
+
+#### Via the `h3 upgrade` command 
+
+As of June, 2023, you can use the `h3 upgrade` command to upgrade to the latest version of h3-cli.
+
+If you get an `ERROR: unrecognized command: "upgrade"`, then you are on a previous version of h3-cli that does not 
+support the upgrade command.  Use one of the methods below to upgrade h3-cli.
+
+#### Via easy_install.sh
+
+Run this command from h3-cli's parent directory:
+
+```shell
+curl https://raw.githubusercontent.com/horizon3ai/h3-cli/public/easy_install.sh | bash 
+```
 
 #### Via git
 

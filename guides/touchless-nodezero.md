@@ -26,8 +26,41 @@ to each of them, enabling autonomous pentesting from various subnets and perspec
 
 The rest of this article walks through how to install and run a NodeZero Runner on your Docker Host.
 
+## Installing and running a NodeZero Runner
 
-## 1. Create an API key for the Runner
+There are two ways to install a Runner: 
+
+1. The easy way, using the new easy_install.sh script that does most of the work for you.
+2. The slightly more manual way of walking thru the installation steps.
+
+
+## Install option #1: The easy way
+
+Follow the steps below to install a NodeZero Runner on your Docker Host.
+
+1. Visit the [Runners](https://portal.horizon3ai.com/runners) page in the Portal.
+2. Click the **Install Runner** button, specify a name for the Runner, then click **Submit**.
+3. Copy the provided installation command and run it on your Docker Host.
+
+Barring any errors, **your NodeZero Runner is now up and running**.  The Runner will register itself
+with the Portal and will be listed on the Runners page (you may need to refresh the page).  
+
+Behind the scenes, the above steps perform the following actions:
+
+1. **Create an API key for the Runner.** The API key is granted **NodeZero Runner** permissions to the API.
+This is a specialized role created just for NodeZero Runners, with very restricted access to your account. 
+The role **CANNOT** read existing pentest data, nor can it provision new pentests.  The only thing it 
+can do is poll the API to detect when a pentest has been assigned to it, and then run the NodeZero Launch Script.
+2. **Install h3-cli on your Docker Host.** h3-cli is installed in a new `h3-cli` directory within the directory
+where you ran the installation command.
+3. **Spin up the Runner using h3-cli.** The NodeZero Runner process is started via the `h3 start-runner` command.
+
+
+## Install option #2: The slightly more manual way
+
+The steps below accomplish the same thing as install option #1, in a slightly more manual and transparent way. 
+
+### 1. Create an API key for the Runner
 
 The NodeZero Runner communicates with the H3 API using h3-cli.  As such, it requires an API key.
 API keys can be provisioned in the Portal [here](https://portal.horizon3ai.com/account-settings) (or [here](https://portal.horizon3ai.eu/account-settings) for EU).
@@ -38,7 +71,7 @@ just for NodeZero Runners, with very restricted access to your account.  The rol
 can do is poll the API to detect when a pentest has been assigned to it, and then run the NodeZero Launch Script.
 
 
-## 2. Install h3-cli on your Docker Host
+### 2. Install h3-cli on your Docker Host
 
 The NodeZero Runner process is started via the h3-cli.  Therefore, the h3-cli must be installed 
 on your Docker Host.  
@@ -67,7 +100,7 @@ Once installed, run the command below to verify h3-cli is working and is using y
 h3 whoami
 ```
 
-## 3. Spin up the Runner using h3-cli
+### 3. Spin up the Runner using h3-cli
 
 Use the following h3-cli command to spin up the NodeZero Runner:
 
@@ -98,7 +131,7 @@ NodeZero.  You can tail the logfile to see it in action:
 tail -f /tmp/my-nodezero-runner.log
 ```
 
-### Additional notes 
+## Additional notes about the Runner
 
 * **Runs as:** The Runner process runs as the user that invoked `h3 start-runner`.
 * **Background process:** The Runner process is disconnected from the shell session and runs in the background. It continues to run after the shell session is closed.

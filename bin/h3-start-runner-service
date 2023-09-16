@@ -1,0 +1,185 @@
+#!/bin/bash
+#
+# usage: h3-start-runner-service {runner-name} [{log-file}]
+#
+# Related systemctl commands:
+#
+# sudo systemctl daemon-reload
+# sudo systemctl enable nodezero-runner-{name}
+# sudo systemctl start nodezero-runner-{name}
+# sudo systemctl stop nodezero-runner-{name}
+# sudo systemctl restart nodezero-runner-{name}
+# systemctl status nodezero-runner-{name}
+# systemctl is-active nodezero-runner-{name}
+# systemctl is-enabled nodezero-runner-{name}
+# systemctl is-failed nodezero-runner-{name}
+# systemctl list-units
+#
+# 
+
+# bootstrap PATH if needed
+function bootstrap_path {
+    if ! command -v h3-env &> /dev/null; then
+        if [ -n "$BASH_SOURCE" ]; then s="$BASH_SOURCE"; else s="$0"; fi
+        d=`dirname "$s"`
+        rc=$?
+        if [ $rc -eq 0 ]; then 
+            PATH="$d:$PATH"
+        fi
+    fi
+}
+bootstrap_path
+
+# 0.
+# include common utils
+source h3-env
+
+# running sudo without the -E option doesn't preserve the environment.
+if [ -z "$H3_CLI_PROFILE" ]; then 
+    echoerr "ERROR: H3_CLI_PROFILE undefined. Try without sudo, or with sudo -E"
+    exit 1
+fi
+
+# x.
+# parse args
+runner_name=$1
+if [ -z "$runner_name" ]; then
+    echoerr "ERROR: runner_name is required"
+    exit 1
+fi
+
+log_file=$2
+if [ -z "$log_file" ]; then
+    log_file="$H3_CLI_LOGGING_DIR/$runner_name.log"
+fi
+
+# x.
+# check if systemd is available
+if ! is_systemd_running; then 
+    echoerr "ERROR: systemd does not appear to be running on this system."
+    echoerr "       Use the following command to start the NodeZero Runner as a standalone background process: "
+    if [ -z "$2" ]; then 
+        echoerr "       h3 start-runner \"$runner_name\" "
+    else
+        echoerr "       h3 start-runner \"$runner_name\" \"$log_file\" "
+    fi
+    exit 1
+fi
+ 
+# x.
+# determine current user (needed for the service file)
+username="$SUDO_USER"
+if [ -z "$username" ]; then 
+    username="$USER"
+fi
+if [ -z "$username" ] && command -v whoami &> /dev/null; then 
+    username=`whoami`
+fi
+if [ -z "$username" ]; then 
+    echoerr "ERROR: Cannot determine username - tried USER, SUDO_USER, and whoami"
+    exit 2
+fi
+
+# x.
+# build the file contents
+service_name="nodezero-runner-$runner_name"
+systemd_service_file_name="/etc/systemd/system/$service_name.service"
+systemd_service_file=`cat <<HERE
+[Unit]
+Description=NodeZero Runner $runner_name
+After=network.target
+
+[Service]
+Type=simple
+User=$username
+Environment="H3_CLI_PROFILE=$H3_CLI_PROFILE"
+ExecStart=$H3_CLI_HOME/bin/h3-start-agent "$runner_name" "$log_file"
+StandardInput=null
+StandardOutput=append:$log_file
+StandardError=inherit
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+HERE
+`
+
+# x.
+# write the file
+echoerr "INFO: Writing to file $systemd_service_file_name ..."
+echo "$systemd_service_file" 
+echo ""
+
+if [ ! -e `dirname $systemd_service_file_name` ]; then 
+    rc=1
+else
+    echo "$systemd_service_file" | sudo -E tee "$systemd_service_file_name" > /dev/null
+    # OR: sudo sh -c echo "$systemd_service_file" > "$systemd_service_file_name" 
+    rc=$?
+fi
+if [ $rc -ne 0 ]; then 
+    echoerr "ERROR: Cannot write to $systemd_service_file_name. "
+    echoerr "       Try using sudo -E, or manually create the file using the contents above."
+    exit $rc
+fi
+
+# x.
+# reload systemd
+echoerr "INFO: Reloading systemd and enabling service $service_name ..."
+echo "sudo -E systemctl daemon-reload"
+sudo -E systemctl daemon-reload
+rc=$?
+if [ $rc -ne 0 ]; then 
+    echoerr "ERROR: Failed to execute systemctl."
+    echoerr "       Try using sudo -E, or you can manually run the command above."
+    exit $rc
+fi
+
+# x.
+# stop any existing runners before enalbing and starting the systemd service 
+# (waited til after we've confirmed above that systemd is accessible)
+pkill_agent "$runner_name"
+
+# x.
+# chmod log_file to avoid 209/STDOUT errors where the started service can't write to an existing log file.
+if [ -f "$log_file" ]; then 
+    sudo -E chmod a+w "$log_file"
+fi
+
+# x.
+# enable runner service
+echo "sudo -E systemctl enable \"$service_name\""
+sudo -E systemctl enable "$service_name"
+rc=$?
+if [ $rc -ne 0 ]; then 
+    exit $rc
+fi
+
+# x.
+# start runner service
+echo "sudo -E systemctl start \"$service_name\""
+sudo -E systemctl start "$service_name"
+rc=$?
+if [ $rc -ne 0 ]; then 
+    exit $rc
+fi
+
+# x.
+# print runner service status
+echo "systemctl status \"$service_name\""
+systemctl status "$service_name"
+rc=$?
+if [ $rc -ne 0 ]; then 
+    exit $rc
+fi
+ 
+echoerr "INFO: NodeZero Runner service \"$service_name\" is active and enabled under systemd."
+echoerr "      The Runner service is configured to start automatically on system boot."
+echoerr "INFO: Stop the service via: "
+echoerr "      systemctl stop \"$service_name\""
+echoerr "INFO: Restart the service via: "
+echoerr "      systemctl start \"$service_name\""
+echoerr "INFO: Stream the NodeZero Runner logs via:"
+echoerr "      h3 tail-runner \"$runner_name\" "
+
+

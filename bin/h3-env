@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# depends on these env vars:
+# HOME
+#
 # checks/sets these env vars:
 #
 # H3_CLI_PROFILES_DIR
@@ -16,80 +19,21 @@
 source h3-utils
 
 # where profiles/creds are stored
-if [ -z "$H3_CLI_PROFILES_DIR" ]; then
-    H3_CLI_PROFILES_DIR="$HOME/.h3"
-fi
-if [ ! -e "$H3_CLI_PROFILES_DIR" ]; then
-    echoerr "ERROR: h3 profile directory H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR does not exist. Please create and define a profile. See README for more info."
-    exit 1
-fi
+ensure_H3_CLI_PROFILES_DIR
+assert_H3_CLI_PROFILES_DIR
 
 # logging for nodezero runners
-if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
-    H3_CLI_LOGGING_DIR="$LOGDIR"
-fi
-if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
-    H3_CLI_LOGGING_DIR="$TMPDIR"
-fi
-if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
-    H3_CLI_LOGGING_DIR="/tmp"
-fi
-if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
-    H3_CLI_LOGGING_DIR="."
-fi
+ensure_H3_CLI_LOGGING_DIR
 
-# check env
-if [ -z "$H3_API_KEY" ]; then
-    # check profile
-    if [ -z "$H3_CLI_PROFILE" ]; then
-        H3_CLI_PROFILE="default"
-    fi
-    profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
-    if [ -e "$profile" ]; then
-        echolog "reading profile $profile ..."
-        source $profile
-    fi
-    if [ -z "$H3_API_KEY" ]; then
-        echoerr "H3_API_KEY environment variable required.  It must be exported to the shell or defined in $profile"
-        exit 1
-    fi
-    API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with install.sh.
-    if [ "$H3_API_KEY" = "$API_KEY_UNSPECIFIED" ]; then
-        echoerr "Please set your API key in $profile"
-        exit 1
-    fi
-fi
+# the API key required for GQL requests
+assert_H3_API_KEY
 
-if [ -z "$H3_CLI_HOME" ]; then
-    H3_CLI_HOME=`dirname $(dirname $(which h3))`
-    if [ -z "$H3_CLI_HOME" ]; then
-        echoerr "H3_CLI_HOME environment variable required.  Must be set to the full path of the h3-cli directory."
-        exit 1
-    fi
-fi
-if [ ! -e "$H3_CLI_HOME" ]; then 
-    echoerr "H3_CLI_HOME environment variable does not refer to an existing directory ($H3_CLI_HOME).  Must be set to the full path of the h3-cli directory."
-    exit 1
-fi
+# refers to the h3-cli installation dir
+assert_H3_CLI_HOME
 
-if [ -z "$H3_AUTH_URL" ]; then
-    H3_AUTH_URL=https://api.horizon3ai.com/v1/auth
-fi
+# API URLs
+ensure_H3_AUTH_URL
+ensure_H3_GQL_URL
 
-if [ -z "$H3_GQL_URL" ]; then
-    H3_GQL_URL=https://api.horizon3ai.com/v1/graphql
-fi
-
-# allow users to define H3_CLI_GQL_PATH
-# always PRE-pend H3_CLI_HOME/queries
-prepend_gql_path="$H3_CLI_HOME/queries"
-if [ -e "$H3_CLI_HOME/queries-admin" ]; then
-    prepend_gql_path="$H3_CLI_HOME/queries-admin:$prepend_gql_path"
-fi
-
-if [ -z "$H3_CLI_GQL_PATH" ]; then
-    H3_CLI_GQL_PATH=$prepend_gql_path
-else
-    H3_CLI_GQL_PATH="$prepend_gql_path:$H3_CLI_GQL_PATH"
-fi
-
+# the path to raw GQL queries (H3_CLI_HOME/queries)
+ensure_H3_CLI_GQL_PATH

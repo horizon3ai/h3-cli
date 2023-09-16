@@ -8,6 +8,19 @@
 # usage: h3-start-agent {agent-name} {log-file}
 #
 
+# bootstrap PATH if needed
+function bootstrap_path {
+    if ! command -v h3-env &> /dev/null; then
+        if [ -n "$BASH_SOURCE" ]; then s="$BASH_SOURCE"; else s="$0"; fi
+        d=`dirname "$s"`
+        rc=$?
+        if [ $rc -eq 0 ]; then 
+            PATH="$d:$PATH"
+        fi
+    fi
+}
+bootstrap_path
+
 # 0.
 # include common utils
 source h3-env
@@ -91,6 +104,10 @@ while [ 1 ]; do
         if [ $rc -eq 0 ]; then 
             # restart the agent.
             echoerr "[$agent_name:$$] Restarting NodeZero Runner ... "
+            # if launched by systemd, just exit the process. systemd will restart it.
+            if was_launched_by_systemd; then 
+                exit 1
+            fi
             # NOTE: command dup'ed in h3 and h3-start-agent.
             nohup h3-start-agent "$agent_name" "$log_file" < /dev/null >> "$log_file" 2>&1 &
             echoerr "[$agent_name:$$] Previous NodeZero Runner process is exiting."

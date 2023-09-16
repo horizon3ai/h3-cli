@@ -6,7 +6,6 @@
 function echoerr { 
     echo "[`date`] $@" 1>&2;   
 }
- 
 
 # writes message to stderr 
 # usage: echolog "the message"
@@ -27,3 +26,179 @@ function escape_quotes {
 function unescape_splat {
     cat <<<$1 | sed 's/\\\*/*/g'
 }
+
+function ensure_H3_CLI_PROFILE {
+    if [ -z "$H3_CLI_PROFILE" ]; then
+        H3_CLI_PROFILE="default"
+    fi
+}
+
+function ensure_H3_CLI_PROFILES_DIR {
+    if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+        H3_CLI_PROFILES_DIR="$HOME/.h3"
+    fi
+}
+
+function assert_H3_CLI_PROFILES_DIR {
+    ensure_H3_CLI_PROFILES_DIR
+    if [ ! -e "$H3_CLI_PROFILES_DIR" ]; then
+        sudo_msg=""
+        if is_root_user; then 
+            sudo_msg=" If you are running via sudo, try using sudo -E to preserve your environment settings."
+        fi
+        echoerr "ERROR: h3 profile directory H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR does not exist. Please create and define a profile.$sudo_msg See README for more info."
+        exit 1
+    fi
+}
+
+function ensure_H3_CLI_LOGGING_DIR {
+    # logging for nodezero runners
+    # order of precedence: LOGDIR, TMPDIR, /tmp, .
+    if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+        H3_CLI_LOGGING_DIR="$LOGDIR"
+    fi
+    if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+        H3_CLI_LOGGING_DIR="$TMPDIR"
+    fi
+    if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+        H3_CLI_LOGGING_DIR="/tmp"
+    fi
+    if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
+        H3_CLI_LOGGING_DIR="."
+    fi
+}
+
+function ensure_H3_CLI_HOME {
+    if [ -z "$H3_CLI_HOME" ]; then
+        H3_CLI_HOME=`dirname $(dirname $(which h3))`
+        if [ -z "$H3_CLI_HOME" ]; then
+            echoerr "H3_CLI_HOME environment variable required.  Must be set to the full path of the h3-cli directory."
+            exit 1
+        fi
+        H3_CLI_HOME=`abs_path "$H3_CLI_HOME"`
+    fi
+}
+
+function assert_H3_CLI_HOME {
+    ensure_H3_CLI_HOME
+    if [ ! -e "$H3_CLI_HOME" ]; then 
+        echoerr "H3_CLI_HOME environment variable does not refer to an existing directory ($H3_CLI_HOME).  Must be set to the full path of the h3-cli directory."
+        exit 1
+    fi
+}
+
+function ensure_H3_API_KEY {
+    # check env
+    if [ -z "$H3_API_KEY" ]; then
+        # check profile
+        ensure_H3_CLI_PROFILES_DIR
+        ensure_H3_CLI_PROFILE
+        profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+        if [ -e "$profile" ]; then
+            echolog "reading profile $profile ..."
+            source $profile
+        fi
+    fi
+}
+    
+function assert_H3_API_KEY {
+    ensure_H3_API_KEY
+    if [ -z "$H3_API_KEY" ]; then
+        echoerr "H3_API_KEY environment variable required.  It must be exported to the shell or defined in $profile"
+        exit 1
+    fi
+    API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with install.sh.
+    if [ "$H3_API_KEY" = "$API_KEY_UNSPECIFIED" ]; then
+        echoerr "Please set your API key in $profile"
+        exit 1
+    fi
+}
+
+function ensure_H3_AUTH_URL {
+    if [ -z "$H3_AUTH_URL" ]; then
+        H3_AUTH_URL=https://api.horizon3ai.com/v1/auth
+    fi
+}
+
+function ensure_H3_GQL_URL {
+    if [ -z "$H3_GQL_URL" ]; then
+        H3_GQL_URL=https://api.horizon3ai.com/v1/graphql
+    fi
+}
+
+function ensure_H3_CLI_GQL_PATH {
+    # allow users to define H3_CLI_GQL_PATH
+    # always PRE-pend H3_CLI_HOME/queries
+    ensure_H3_CLI_HOME
+    prepend_gql_path="$H3_CLI_HOME/queries"
+    if [ -e "$H3_CLI_HOME/queries-admin" ]; then
+        prepend_gql_path="$H3_CLI_HOME/queries-admin:$prepend_gql_path"
+    fi
+
+    if [ -z "$H3_CLI_GQL_PATH" ]; then
+        H3_CLI_GQL_PATH=$prepend_gql_path
+    else
+        H3_CLI_GQL_PATH="$prepend_gql_path:$H3_CLI_GQL_PATH"
+    fi
+}
+
+# :returns: 0 if systemd is running; non-zero otherwise
+function is_systemd_running {
+    if ! command -v systemctl &> /dev/null; then
+        return 1
+    fi
+    if ! command -v systemd-notify &> /dev/null; then
+        return 1
+    fi
+    # below returns non-zero if "degraded" (some services did not start)
+    # systemctl is-system-running --quiet
+    systemd-notify --booted
+    return $?
+}
+
+# :returns: 0 if the process was launched by systemd; non-zero otherwise
+function was_launched_by_systemd {
+    if [ "$(ps -o comm= $PPID)" = "systemd" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function is_root_user {
+    if [ "$(id -u)" -eq 0 ]; then 
+        return 0
+    else
+        return 1
+    fi
+}
+
+function ps_agent {
+    ps -ef | grep h3-start-agent | grep -v grep
+}
+
+function pkill_agent {
+    agent_name=$1
+    ps_agent
+    if [ -z "$agent_name" ]; then 
+        echoerr "Killing all NodeZero Runner processes ..."
+        pkill -f "h3-start-agent"
+    else
+        echoerr "Killing NodeZero Runner process $agent_name ..."
+        pkill -f "h3-start-agent $agent_name "
+    fi
+    sleep 2
+    ps_agent
+}
+
+# converts relative path to absolute path
+# https://stackoverflow.com/a/31605674
+function abs_path {
+    f=$1
+    if [ ! -e "$f" ]; then 
+        # echoerr "file $f does not exist"
+        echo $f
+    else
+        echo "$(cd "$(dirname "$f")"; pwd)/$(basename "$f")"
+    fi
+} 

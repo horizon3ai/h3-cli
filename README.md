@@ -187,7 +187,7 @@ Horizon3.ai provides new users with a default op template named `Default 1 - Rec
 up-to-date with our latest attack parameters and recommended configuration.  The default template does not define a scope,
 in which case NodeZero will use _Intelligent Scope_ - NodeZero's host subnet will provide the initial scope, and it will expand 
 organically during the pentest as more hosts and subnets are discovered.  For more information on Intelligent Scope and other 
-deployment options, visit our [product documentation](https://userdocs.horizon3ai.com/sections/getting_started/n0_host/deployment/).
+deployment options, visit our [product documentation](https://docs.horizon3.ai/getting_started/n0_host/deployment/).
 
 For experienced users, custom op template(s) may be created via the [Horizon3.ai Portal](https://portal.horizon3ai.com/).
 To create a custom op template, walk through the _Run a Pentest_ modal until you see the 

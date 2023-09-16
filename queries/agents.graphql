@@ -12,6 +12,8 @@ fragment AgentFragment on Agent {
     last_heartbeat_at
     last_heartbeat_time_ago
     created_at
+    h3_cli_version
+    pid
     last_command {
         ...AgentCommandFragment
     }

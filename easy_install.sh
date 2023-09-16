@@ -180,7 +180,13 @@ if [ -z "$runner_name" ]; then
     echolog "DEBUG: runner_name not provided, will not start a NodeZero Runner"
     exit 0
 fi
-h3 start-runner "$runner_name" 
+h3 start-runner-service "$runner_name" 
+rc=$?
+if [ $rc -ne 0 ]; then 
+    echoerr "INFO: Failed to start the NodeZero Runner as a systemd service."
+    echoerr "      Starting the NodeZero Runner as a standalone background process instead ..."
+    h3 start-runner "$runner_name" 
+fi
 
 echoerr "INFO: NodeZero Runner installation complete."
 

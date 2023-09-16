@@ -5,6 +5,19 @@
 # For verbose tracing: export H3_CLI_VERBOSE=1
 #
 
+# bootstrap PATH if needed
+function bootstrap_path {
+    if ! command -v h3-env &> /dev/null; then
+        if [ -n "$BASH_SOURCE" ]; then s="$BASH_SOURCE"; else s="$0"; fi
+        d=`dirname "$s"`
+        rc=$?
+        if [ $rc -eq 0 ]; then 
+            PATH="$d:$PATH"
+        fi
+    fi
+}
+bootstrap_path
+
 
 # writes message to stderr
 # usage: echoerr "the message"
@@ -70,6 +83,9 @@ h3 runners                          # List of NodeZero Runners in the current cl
 h3 runner {name}                    # List the NodeZero Runner with the given {name}.
 h3 runner-commands {name}           # List the NodeZero Runner with the given {name} and the last 5 commands it ran.
 h3 start-runner {name} [{log-file}] # Runs a NodeZero Runner as a background process and assigns it the given {name}.  
+                                    # {log-file} is optional; by default logs to \$H3_CLI_LOGGING_DIR/{name}.log.
+h3 start-runner-service {name} [{log-file}] 
+                                    # Runs a NodeZero Runner as a systemd service and assigns it the given {name}.  
                                     # {log-file} is optional; by default logs to \$H3_CLI_LOGGING_DIR/{name}.log.
 h3 hello-runner {name}              # Sends a hello-world command to the Runner with the assigned {name}.
 h3 stop-runner [{name}]             # Stops the Runner process with the given {name} on the local machine.
@@ -278,8 +294,14 @@ function cmd_create_pentest {
 
 
 function cmd_env {
-    source h3-env
-    rc=$?
+    source h3-utils
+    ensure_H3_CLI_PROFILES_DIR
+    ensure_H3_CLI_LOGGING_DIR
+    ensure_H3_API_KEY
+    ensure_H3_CLI_HOME
+    ensure_H3_AUTH_URL
+    ensure_H3_GQL_URL
+    ensure_H3_CLI_GQL_PATH
     echo "H3_CLI_HOME=$H3_CLI_HOME" 
     echo "H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR" 
     echo "H3_CLI_PROFILE=$H3_CLI_PROFILE" 
@@ -288,12 +310,12 @@ function cmd_env {
     echo "H3_AUTH_URL=$H3_AUTH_URL" 
     echo "H3_GQL_URL=$H3_GQL_URL" 
     echo "H3_CLI_LOGGING_DIR=$H3_CLI_LOGGING_DIR" 
-    return $rc
 }
 
 
 function cmd_profiles {
-    source h3-env
+    source h3-utils
+    assert_H3_CLI_PROFILES_DIR
     for x in `ls $H3_CLI_PROFILES_DIR/*.env`; do 
         basename $x | sed 's/[.]env$//'
     done
@@ -306,7 +328,8 @@ function cmd_profile {
         export H3_CLI_PROFILE=$set_profile
         jwt=`h3-auth force`
     fi
-    source h3-env
+    source h3-utils
+    ensure_H3_CLI_PROFILE
     echo $H3_CLI_PROFILE
 }
 
@@ -350,32 +373,46 @@ function cmd_delete_profile {
 }
 
 
-function ps_agent {
-    ps -ef | grep h3-start-agent | grep -v grep
-}
-
-
-function pkill_agent {
-    agent_name=$1
-    ps_agent
-    if [ -z "$agent_name" ]; then 
-        echoerr "Killing all NodeZero Runner processes ..."
-        pkill -f "h3-start-agent"
-    else
-        echoerr "Killing NodeZero Runner process $agent_name ..."
-        pkill -f "h3-start-agent $agent_name "
+function cmd_stop_agent {
+    source h3-utils
+    runner_name=$1
+    if [ -z "$runner_name" ]; then 
+        if is_systemd_running; then 
+            # find and stop all nodezero-runner services
+            # TODO: check if runner service in use via systemctl status 
+            # TODO: check if sudo systemctl will work ?
+            echo sudo systemctl stop 'nodezero-runner*'
+            sudo systemctl stop 'nodezero-runner*'
+            # rc=$?
+            # if [ $rc -eq 0 ]; then 
+            #     # TODO: glob doesn't work for disable.  
+            #     # TODO: maybe just require the runner name? 
+            #     # echo sudo systemctl disable 'nodezero-runner*'
+            #     # sudo systemctl disable 'nodezero-runner*'
+            # fi
+        fi
+    else 
+        if is_systemd_running; then 
+            service_name="nodezero-runner-$runner_name"
+            echo sudo systemctl stop "$service_name"
+            sudo systemctl stop "$service_name"
+            rc=$?
+            if [ $rc -eq 0 ]; then 
+                echo sudo systemctl disable "$service_name"
+                sudo systemctl disable "$service_name"
+            fi
+        fi
     fi
-    sleep 2
-    ps_agent
+    pkill_agent "$@"
 }
-
+ 
 
 function cmd_start_agent {
     source h3-env
     agent_name=$1
     log_file=$2
     if [ -z "$agent_name" ]; then
-        echo "runner_name is required"
+        echoerr "runner_name is required"
         return 1
     fi
     if [ -z "$log_file" ]; then
@@ -551,9 +588,13 @@ elif [ "$cmd" = "start-agent" -o "$cmd" = "start-runner" ]; then
     cmd_start_agent "$@"
 
 elif [ "$cmd" = "stop-agent" -o "$cmd" = "stop-runner" ]; then
-    pkill_agent "$@"
+    cmd_stop_agent "$@"
+
+elif [ "$cmd" = "start-runner-service" ]; then
+    h3-start-runner-service "$@"
 
 elif [ "$cmd" = "ps-agent" -o "$cmd" = "ps-runner" ]; then
+    source h3-utils
     ps_agent
 
 elif [ "$cmd" = "hello-agent" -o "$cmd" = "hello-runner" ]; then
@@ -608,7 +649,8 @@ elif [ "$cmd" = "utc" ]; then
     date -u
 
 elif [ "$cmd" = "version" ]; then
-    source h3-env
+    source h3-utils
+    assert_H3_CLI_HOME
     cat $H3_CLI_HOME/version.txt
     echo
 

@@ -135,10 +135,11 @@ tail -f /tmp/my-nodezero-runner.log
 
 * **Runs as:** The Runner process runs as the user that invoked `h3 start-runner`.
 * **Background process:** The Runner process is disconnected from the shell session and runs in the background. It continues to run after the shell session is closed.
-* **System reboot:** The Runner will NOT restart itself after a system reboot. To enable this, you can wire up `h3 start-runner` to your system launcher, eg. systemd, launchd, cron, etc.
-* **Stop Runner:** To terminate the Runner process, use `h3 stop-runner`.
+* **System reboot:** The Runner will NOT (by default) restart itself after a system reboot. To enable this, see [Auto-start Runner at system startup](#auto-start-runner-at-system-startup).
+* **Stop Runner:** To terminate the Runner process, use `h3 stop-runner {name}`.
 * **Delete Runner:** To delete a Runner, use `h3 delete-runner {name}`.
     * If a deleted Runner is still running, it will be recreated upon the next heartbeat.
+* **Unique Runner names:** Runner names should be treated as unique identifiers. Avoid re-using the same name for different Runners in your account.
 * **Rename Runner:** You can NOT rename an existing Runner; however you can stop (and optionally delete) a Runner, then start a new Runner with a different name.
     * ❗ **NOTE:** if you saved the old Runner name to an op template, the template will need to be updated to use the new Runner name.
 
@@ -189,3 +190,82 @@ h3 run-nodezero-on-runner {op_id} {runner_name}
 ```
 
 > You can use `h3 pentest` to get the `op_id` for the most recently created pentest.
+
+
+
+## Auto-start Runner at system startup
+
+A common use case is to register your Runner to start automatically at system startup. 
+This ensures that your Runner will continue working even after the system is rebooted.
+
+In order to do this you must register the Runner with the system's boot service. 
+Different systems have different boot services, but the most popular one used by various
+Linux distributions is `systemd`.  
+
+**h3-cli provides built-in support for `systemd`.**  To register your Runner with `systemd`, 
+use the `h3 start-runner-service` command, example below.  Note the command will attempt 
+to use `sudo` for running the necessary `systemd`/`systemctl` commands. 
+
+```shell
+h3 start-runner-service my-nodezero-runner /tmp/my-nodezero-runner.log
+```
+
+> If your system uses a different boot service than `systemd`, contact us for assistance with setting up your NodeZero Runner service. 
+
+If all goes well, your NodeZero Runner is now registered as a service with `systemd`.  This means the Runner will...
+
+* automatically start up at boot time
+* automatically be restarted if it fails for any reason
+
+The Runner service will be registered with `systemd` under the name `nodezero-runner-{runner-name}`.  For example the command above 
+will register the service as `nodezero-runner-my-nodezero-runner`.
+
+
+### Helpful `systemctl` commands for managing the Runner service
+
+To view the status of the Runner service, use `systemctl status`, for example:
+
+```shell
+systemctl status nodezero-runner-my-nodezero-runner
+```
+
+To stop the Runner service:
+
+```shell
+sudo systemctl stop nodezero-runner-my-nodezero-runner
+```
+
+Note this will stop the current Runner service, but it will not de-register it from `systemd`.
+This means the Runner service will be started again upon the next system boot.  To disable the Runner service such that 
+it no longer starts at boot time, use `systemctl disable`, for example:
+
+```shell
+sudo systemctl disable nodezero-runner-my-nodezero-runner
+```
+
+To re-register the Runner service and re-enable it to start at boot time:
+
+```shell
+sudo systemctl enable nodezero-runner-my-nodezero-runner
+```
+
+To start the Runner service:
+
+```shell
+sudo systemctl start nodezero-runner-my-nodezero-runner
+```
+
+For more information related to `systemd` and `systemctl`, check out these resources:
+
+* [How to use systemctl to manage Linux services](https://www.redhat.com/sysadmin/linux-systemctl-manage-services)
+* [`systemctl` man page](https://www.freedesktop.org/software/systemd/man/systemctl.html)
+* [`systemd` wiki](https://en.wikipedia.org/wiki/Systemd)
+
+
+
+### Troubleshooting
+
+* **209/STDOUT Error**: This typically means `systemd` could not start the service because it did not have 
+permission to write to the log file (`/tmp/my-nodezero-runner.log` in the examples above).  Try chmod'ing the
+log file or simply delete it and let `systemd` create a new one.
+

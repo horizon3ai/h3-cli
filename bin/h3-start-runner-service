@@ -47,10 +47,11 @@ if [ -z "$runner_name" ]; then
     echoerr "ERROR: runner_name is required"
     exit 1
 fi
+runner_name_slug=`slugify "$runner_name"`
 
 log_file=$2
 if [ -z "$log_file" ]; then
-    log_file="$H3_CLI_LOGGING_DIR/$runner_name.log"
+    log_file="$H3_CLI_LOGGING_DIR/$runner_name_slug.log"
 fi
 
 # x.
@@ -82,7 +83,7 @@ fi
 
 # x.
 # build the file contents
-service_name="nodezero-runner-$runner_name"
+service_name="nodezero-runner-$runner_name_slug"
 systemd_service_file_name="/etc/systemd/system/$service_name.service"
 systemd_service_file=`cat <<HERE
 [Unit]

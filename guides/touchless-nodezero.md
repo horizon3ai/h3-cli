@@ -2,39 +2,34 @@
 ## h3-cli: Automated NodeZero deployment using a NodeZero Runner
 
 Part of the process of running an _internal_ pentest involves launching the NodeZero Docker container on a 
-Docker Host within your private network.  This is typically done by signing in to your Docker Host and 
-manually running the Nodezero Launch Script provided in the Portal.
+Docker Host within your private network.  This is typically done by manually signing in to your Docker Host and 
+running the NodeZero Launch Script provided in the Portal.
 
-**A NodeZero Runner enables automated deployment of the NodeZero Docker container.** This allows you to provision and deploy pentests 
-fully from the Portal, without having to manually run the NodeZero Launch Script. The NodeZero Runner is a 
+**A NodeZero Runner enables automated deployment of the NodeZero Docker container.** The NodeZero Runner is a 
 background process running on your Docker Host that listens for newly provisioned pentests and runs the NodeZero 
 Launch Script automatically. 
 
+This allows you to provision and deploy pentests fully from the Portal, without having to manually sign in and run the NodeZero Launch Script.
+It also enables you to run pentests on an [automated schedule](recurring-pentests.md).
+
 > A NodeZero Runner is used for _internal_ pentests only. For _external_ pentests, NodeZero is automatically deployed in the H3 cloud.
 
-Spinning up a NodeZero Runner is easy.  At a high-level the steps are:
-
-1. Create an API key for the Runner 
-2. Install h3-cli on your Docker Host
-3. Spin up the Runner using h3-cli
-
-Once the NodeZero Runner is running, you can assign new pentests to it in the Portal (or via h3-cli).
-A NodeZero Runner launches NodeZero only for pentests assigned to it.  
+Once a NodeZero Runner is up and running, you can assign new pentests to it from the Portal (or via h3-cli).
+The Runner will launch NodeZero for the pentests assigned to it.  
 
 As your pentesting needs grow, you can spin up multiple NodeZero Runners across your network and assign pentests
 to each of them, enabling autonomous pentesting from various subnets and perspectives within your environment.
 
-The rest of this article walks through how to install and run a NodeZero Runner on your Docker Host.
 
 ## Installing and running a NodeZero Runner
 
 There are two ways to install a Runner: 
 
-1. The easy way, using the new easy_install.sh script that does most of the work for you.
+1. The easy way, using the new `easy_install.sh` script that does most of the work for you (recommended).
 2. The slightly more manual way of walking thru the installation steps.
 
 
-## Install option #1: The easy way
+## Install option #1: The easy way (recommended)
 
 Follow the steps below to install a NodeZero Runner on your Docker Host.
 
@@ -44,6 +39,10 @@ Follow the steps below to install a NodeZero Runner on your Docker Host.
 
 Barring any errors, **your NodeZero Runner is now up and running**.  The Runner will register itself
 with the Portal and will be listed on the Runners page (you may need to refresh the page).  
+
+**Auto-Restart:** If your Docker Host runs on a Linux system that supports `systemd`, the install script will attempt to 
+register the Runner as a system service with `systemd`.  Once registered, `systemd` will automatically restart the Runner 
+upon a system reboot. See [Auto-start Runner at system startup](#auto-start-runner-at-system-startup) for more info.
 
 Behind the scenes, the above steps perform the following actions:
 
@@ -60,7 +59,7 @@ where you ran the installation command.
 
 The steps below accomplish the same thing as install option #1, in a slightly more manual and transparent way. 
 
-### 1. Create an API key for the Runner
+#### 1. Create an API key for the Runner
 
 The NodeZero Runner communicates with the H3 API using h3-cli.  As such, it requires an API key.
 API keys can be provisioned in the Portal [here](https://portal.horizon3ai.com/account-settings) (or [here](https://portal.horizon3ai.eu/account-settings) for EU).
@@ -71,7 +70,7 @@ just for NodeZero Runners, with very restricted access to your account.  The rol
 can do is poll the API to detect when a pentest has been assigned to it, and then run the NodeZero Launch Script.
 
 
-### 2. Install h3-cli on your Docker Host
+#### 2. Install h3-cli on your Docker Host
 
 The NodeZero Runner process is started via the h3-cli.  Therefore, the h3-cli must be installed 
 on your Docker Host.  
@@ -100,7 +99,7 @@ Once installed, run the command below to verify h3-cli is working and is using y
 h3 whoami
 ```
 
-### 3. Spin up the Runner using h3-cli
+#### 3. Spin up the Runner using h3-cli
 
 Use the following h3-cli command to spin up the NodeZero Runner:
 
@@ -109,12 +108,16 @@ h3 start-runner my-nodezero-runner /tmp/my-nodezero-runner.log
 ```
 
 The NodeZero Runner process runs in the background and logs its output to the provided 
-logfile, in this case `/tmp/my-nodezero-runner.log`.  The process is disconnected from 
+log file, in this case `/tmp/my-nodezero-runner.log`.  The process is disconnected from 
 the shell session, so it will continue to run in the background after you sign out.
 
-Each NodeZero Runner is given a name, in this case `my-nodezero-runner`.  The name can 
-be anything you want.  The name helps you identify the Runner when assigning pentests 
-to it, especially if you spin up multiple Runners across your network.
+**Auto-Restart:** If your Docker Host runs on a Linux system that supports `systemd`, you can optionally 
+register the Runner as a system service with `systemd`.  Once registered, `systemd` will automatically restart the Runner 
+upon a system reboot. See [Auto-start Runner at system startup](#auto-start-runner-at-system-startup) for more info.
+
+**Naming:** Each NodeZero Runner is given a name, in this case `my-nodezero-runner`.  The name can 
+be anything you want, but it should be unique if you spin up multiple Runners across your network.
+The name helps you identify the Runner when assigning pentests to it.
 
 To verify the Runner has connected to the H3 API and registered itself, run the command below:
 
@@ -123,26 +126,21 @@ h3 runners
 ```
 
 You should see an entry for the Runner `my-nodezero-runner` that you just started.
-
-You can now assign pentests to your NodeZero Runner and the Runner will automatically launch 
-NodeZero.  You can tail the logfile to see it in action:
-
-```shell
-tail -f /tmp/my-nodezero-runner.log
-```
+You can now assign pentests to your NodeZero Runner from the Portal and the Runner will automatically launch NodeZero.  
 
 ## Additional notes about the Runner
 
 * **Runs as:** The Runner process runs as the user that invoked `h3 start-runner`.
 * **Background process:** The Runner process is disconnected from the shell session and runs in the background. It continues to run after the shell session is closed.
-* **System reboot:** The Runner will NOT (by default) restart itself after a system reboot. To enable this, see [Auto-start Runner at system startup](#auto-start-runner-at-system-startup).
+* **Auto-Restart:** To enable auto-restart of the Runner on system reboot, see [Auto-start Runner at system startup](#auto-start-runner-at-system-startup).
+* **Runner Log**: To view the Runner log, use `h3 tail-runner {name}`
 * **Stop Runner:** To terminate the Runner process, use `h3 stop-runner {name}`.
 * **Delete Runner:** To delete a Runner, use `h3 delete-runner {name}`.
-    * If a deleted Runner is still running, it will be recreated upon the next heartbeat.
+    * This only deletes its registration record with H3. If a deleted Runner is still active, it will be re-registered upon its next heartbeat.
 * **Unique Runner names:** Runner names should be treated as unique identifiers. Avoid re-using the same name for different Runners in your account.
 * **Rename Runner:** You can NOT rename an existing Runner; however you can stop (and optionally delete) a Runner, then start a new Runner with a different name.
     * ❗ **NOTE:** if you saved the old Runner name to an op template, the template will need to be updated to use the new Runner name.
-
+* **Auto-Injecting Credentials:** Runners can also be used to [auto-inject credentials](auto-inject-creds.md) into a pentest. 
 
 ## Troubleshooting
 
@@ -162,13 +160,13 @@ This will list the Runner processes on the local machine.
 Look for errors in the log: 
 
 ```shell
-tail -f /tmp/my-nodezero-runner.log
+h3 tail-runner {runner_name}
 ```
 
 
 ### View Runner command errors
 
-Use the following to list out the last 5 comands executed by the Runner.  The output includes the exit status and output from the command:
+Use the following to list out the last 5 commands executed by the Runner.  The output includes the exit status and output from the command:
 
 ```shell
 h3 runner-commands {runner_name}
@@ -177,7 +175,21 @@ h3 runner-commands {runner_name}
 
 ### Docker permission errors
 
+Example:
+```shell
+[#] Checking Docker functionality by running the hello-world test container:
+[+] PASSED: Docker version installed meets the minimum required version 20.10.
+[!] FAILED: Failed to validate Docker. Verify this account has permissions to run Docker and retry.
+```
+
 If your Docker Host requires `sudo` to run `docker` commands, then you may need to start the Runner using `sudo` as well.
+
+Alternatively, you try adding the user that invokes `h3 start-runner` to the `docker` group, for example (using `ubuntu` user):
+```shell
+sudo usermod -aG docker ubuntu
+sudo systemctl restart docker
+```
+(Note: Make sure to log out and back in after changing groups for the actively logged on user)
 
 
 ### Retry

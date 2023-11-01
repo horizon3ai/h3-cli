@@ -2,7 +2,7 @@
 ## h3-cli: CLI tool for the Horizon3.ai API
 
 h3-cli is a convenient CLI (command-line interface) for accessing the 
-Horizon3.ai API.  The Horizon3.ai API provides programmatic access to a subset 
+Horizon3.ai API. The Horizon3.ai API provides programmatic access to a subset 
 of functionality available through the Horizon3.ai Portal.  At a high level, 
 the API allows you to:
 
@@ -96,29 +96,37 @@ If everything's installed correctly, you should see the h3-cli help text.
 We release new features, bug fixes, and other updates for the h3-cli every month.  Upgrade your installation using
 one of the methods below.
 
-#### Via the `h3 upgrade` command 
+#### Option 1: Via the `h3 upgrade` command (recommended)
 
 As of June, 2023, you can use the `h3 upgrade` command to upgrade to the latest version of h3-cli.
 
 If you get an `ERROR: unrecognized command: "upgrade"`, then you are on a previous version of h3-cli that does not 
 support the upgrade command.  Use one of the methods below to upgrade h3-cli.
 
-#### Via easy_install.sh
+#### Option 2: Via `easy_install.sh` (recommended if `h3 upgrade` is unavailable)
 
-Run this command from h3-cli's parent directory:
+Run this command from h3-cli's parent directory (i.e. the directory that contains the `h3-cli/` directory):
 
 ```shell
 curl https://raw.githubusercontent.com/horizon3ai/h3-cli/public/easy_install.sh | bash 
 ```
 
-#### Via git
+#### Option 3: Via git
 
 If you used `git clone` to install the repo, then simply run `git pull` to install the latest version.
 
-#### Via zip download
+#### Option 4: Via zip download
 
 If you downloaded the repo as a zip file, then re-download the zip file and unzip it to the same location (in other words replace
 your existing h3-cli installation with the new zip).
+
+#### Checking the current version
+
+As of June, 2023, you can view your current version of h3-cli via:
+
+```shell
+h3 version
+```
 
 
 ## Getting started 
@@ -249,10 +257,12 @@ The above command will download the zip file to `pentest-reports-{op_id}.zip` in
 
 ## Use cases
 
-* [**Automated NodeZero deployment.**](guides/touchless-nodezero.md) Learn how to deploy NodeZero on your Docker Host automatically,
-without having to manually copy+paste the NodeZero Launch Script, using h3-cli.
+* [**Automated NodeZero deployment using a NodeZero Runner.**](guides/touchless-nodezero.md) Learn how to use a NodeZero Runner 
+to deploy NodeZero on your Docker Host automatically, without having to manually copy+paste the NodeZero Launch Script.
 * [**Automated scheduling.**](guides/recurring-pentests.md) Learn how to run pentests automatically on a regular schedule, 
-for example once a week or once a month, using h3-cli.
+for example once a week or once a month.
+* [**Auto-injected credentials.**](guides/auto-inject-creds.md) Learn how to automatically inject credentials into a 
+regularly scheduled pentest using a NodeZero Runner. 
 * [**Monitoring pentests.**](guides/monitor-pentests.md) Learn how to monitor pentests using h3-cli.
 * [**Paginating results.**](guides/paginate-results.md) Learn how to paginate through large result sets using h3-cli.
 * [**JSON Parsing using `jq`.**](guides/json-parsing-with-jq.md) Learn how to leverage the power of `jq` to parse JSON responses 
@@ -453,7 +463,7 @@ You should see the raw JSON response from the GraphQL server.  You can pretty-pr
 h3 gql ./my_session.graphql | jq .
 ```
 
-**Important!** You must specify the path to the graphql file (full or relative, ie. `./my_session.graphql` instead of just `my_session.graphql`),
+**Important!** You must specify the path to the graphql file (full or relative, e.g. `./my_session.graphql` instead of just `my_session.graphql`),
 otherwise you risk colliding with graphql files that h3-cli uses internally.
 
 

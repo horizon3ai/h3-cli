@@ -25,6 +25,26 @@ bootstrap_path
 # include common utils
 source h3-env
 
+
+# :returns: the set of uuids pulled from filenames under ~/.h3/*.h3ec
+function read_auto_injected_credential_uuids {
+    for x in $H3_CLI_PROFILES_DIR/*.h3ec; do 
+        basename "$x" .h3ec; 
+    done
+}
+
+
+# :returns: a json array containing the uuids from read_auto_injected_credential_uuids.
+function build_auto_injected_credential_uuids_param {
+    uuids=`read_auto_injected_credential_uuids`
+    if [ -z "$uuids" ]; then 
+        echo '[]'
+    else
+        jq -ncR '[inputs]' <<< "$uuids"
+    fi
+}
+
+
 #
 # Helper function for building the JSON parameters 
 # for the GraphQL request.
@@ -36,8 +56,9 @@ function build_json_params {
     h3_cli_version=`h3 version`
     pid=$$
     uid=$UID
+    auto_injected_credential_uuids=`build_auto_injected_credential_uuids_param`
     cat <<HERE
-{"input":{"name":"$name","uname":"$uname","log_file":"$log_file","h3_cli_version":"$h3_cli_version","pid":"$pid","uid":"$UID"}}
+{"input":{"name":"$name","uname":"$uname","log_file":"$log_file","h3_cli_version":"$h3_cli_version","pid":"$pid","uid":"$UID","auto_injected_credential_uuids":$auto_injected_credential_uuids}}
 HERE
 }
 

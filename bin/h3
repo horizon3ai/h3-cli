@@ -116,6 +116,23 @@ h3 disable-schedule {schedule-name} # Disable the given schedule.
 h3 utc                              # Prints current UTC time. Scheduled action cron-expressions are specified in UTC time.
 
 
+--------------------------
+Auto-Injected Credentials:
+
+h3 create-auto-injected-credential {input} 
+                                    # Create an auto-injected credential with the given {input}. 
+                                    # Auto-injected credentials are registered with H3, but are stored locally on this machine 
+                                    # under the ~/.h3 directory. They are used in combination with a NodeZero Runner 
+                                    # to auto-inject credentials into a scheduled pentest. See docs for examples.
+h3 inject-auto-injected-credential {uuid} {op_id} 
+                                    # Inject the auto-injected credential with the given {uuid} into the given {op_id}.
+                                    # This command is invoked by the NodeZero Runner for scheduled pentests that 
+                                    # are configured with auto-injected credentials.
+h3 auto-injected-credentials        # Lists all auto-injected credentials in the account.
+h3 delete-auto-injected-credential {uuid} 
+                                    # Delete the auto-injected credential with the given {uuid}. This will send a command to 
+                                    # the NodeZero Runner to delete the credential from the machine.
+
 -------------------------
 Managing h3-cli profiles:
 
@@ -416,7 +433,8 @@ function cmd_start_agent {
         return 1
     fi
     if [ -z "$log_file" ]; then
-        log_file="$H3_CLI_LOGGING_DIR/$agent_name.log"
+        agent_name_slug=`slugify "$agent_name"`
+        log_file="$H3_CLI_LOGGING_DIR/$agent_name_slug.log"
     fi
     pkill_agent "$agent_name"
     # echoerr "Starting NodeZero Runner via: nohup h3-start-agent \"$agent_name\" < /dev/null >> \"$log_file\" 2>&1 &"
@@ -662,6 +680,24 @@ elif [ "$cmd" = "gql-describe" ]; then
     res=`h3-gql $*`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq
+    else echo "$res"; fi
+
+elif [ "$cmd" = "create-auto-injected-credential" ]; then
+    h3-create-auto-injected-credential "$@"
+
+elif [ "$cmd" = "inject-auto-injected-credential" ]; then
+    h3-inject-auto-injected-credential "$@"
+
+elif [ "$cmd" = "delete-auto-injected-credential" ]; then
+    h3-delete-auto-injected-credential "$@"
+
+elif [ "$cmd" = "delete-auto-injected-credential-secret" ]; then
+    h3-delete-auto-injected-credential-secret "$@"
+
+elif [ "$cmd" = "auto-injected-credentials" ]; then
+    res=`h3-gql auto_injected_credentials`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.auto_injected_credentials[]'
     else echo "$res"; fi
 
 else 

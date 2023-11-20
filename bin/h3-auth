@@ -21,6 +21,7 @@ function gen_jwt {
         return 0
     fi
     curl -s -S \
+      -x "$H3_CLI_PROXY_URL" \
       -X POST $H3_AUTH_URL \
       -H 'Content-Type: application/json' \
       -d @- <<HERE 
@@ -52,8 +53,8 @@ H3_AUTH_URL=$H3_AUTH_URL
 H3_GQL_URL=$H3_GQL_URL
 HERE
         # force user to re-try so the new URLs are picked up
-        echoerr "REDIRECTED TO EU: Your profile has been redirected to our EU region. Please try again."
-        return 1
+        echoerr "INFO: REDIRECTED TO EU: Your profile has been redirected to our EU region."
+        return 101
     fi
     return $rc
 }
@@ -114,7 +115,7 @@ elif [ "$cmd" = "force" ]; then
 fi
 
 rc=$?
-if [ $rc -eq 0 ]; then
+if [ $rc -eq 0 -o $rc -eq 101 ]; then
     echo $H3_API_JWT 
 fi
 

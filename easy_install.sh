@@ -14,6 +14,11 @@
 #
 # If a {runner-name} is provided, the script starts a NodeZero Runner with the given name.
 #
+# By default the script creates/updates the default h3-cli profile (~/.h3/default.env).
+# If H3_CLI_PROFILE is defined, the script will instead create/update the h3-cli profile 
+# with that name (~/.h3/$H3_CLI_PROFILE.env).
+# 
+#
 
 
 function echoerr { 

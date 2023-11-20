@@ -18,6 +18,10 @@
 # pull in util fns
 source h3-utils
 
+# always load from the .h3 profile
+# the contents of the .h3 profile will override any env vars set in the current session
+source_profile
+
 # where profiles/creds are stored
 ensure_H3_CLI_PROFILES_DIR
 assert_H3_CLI_PROFILES_DIR

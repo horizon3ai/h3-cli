@@ -36,7 +36,7 @@ rc=$?
 if [ $rc -eq 0 ]; then
     nodezero_script_url=`cat <<<$res | jq -r .data.nodezero_script_url`
     echoerr "INFO: Launching NodeZero for op_id: $op_id"
-    curl "$nodezero_script_url" | bash 
+    curl -x "$H3_CLI_PROXY_URL" "$nodezero_script_url" | bash 
 else
     echo $res
     exit $rc

@@ -53,7 +53,7 @@ function build_json_params {
     name=$1
     uname=$2
     log_file=$3
-    h3_cli_version=`h3 version`
+    h3_cli_version=$4
     pid=$$
     uid=$UID
     auto_injected_credential_uuids=`build_auto_injected_credential_uuids_param`
@@ -75,6 +75,11 @@ function sleepy {
 # parse args
 agent_name=$1
 log_file=$2
+# get the h3-cli-version at startup and remember it.
+# if h3-cli is upgraded underneath, then h3 version will return the new version; 
+# however this runner is still running at the old version (at least this particular module, h3-start-agent).  
+# the runner needs to be restarted to pick up the new version.
+h3_cli_version=`h3 version`
 
 if [ -z "$agent_name" ]; then
     echoerr "name is required"
@@ -95,7 +100,7 @@ while [ 1 ]; do
     # a.
     # fetch the next agent command
     uname=`uname -a`
-    json_params=`build_json_params "$agent_name" "$uname" "$log_file"`
+    json_params=`build_json_params "$agent_name" "$uname" "$log_file" "$h3_cli_version"`
     res=`h3-gql next_agent_command "$json_params"`
     rc=$?
     if [ $rc -ne 0 ]; then

@@ -13,7 +13,10 @@ source h3-env
 function refresh_jwt {
     H3_API_JWT=`h3-auth force`
     rc=$?
-    if [ $rc -ne 0 ]; then 
+    if [ $rc -eq 101 ]; then 
+        echolog "reloading h3-cli profile ..."
+        source_profile
+    elif [ $rc -ne 0 ]; then 
         exit $rc
     fi
 }
@@ -22,7 +25,10 @@ function refresh_jwt {
 function read_jwt {
     H3_API_JWT=`h3-auth`
     rc=$?
-    if [ $rc -ne 0 ]; then 
+    if [ $rc -eq 101 ]; then 
+        echolog "reloading h3-cli profile ..."
+        source_profile
+    elif [ $rc -ne 0 ]; then 
         exit $rc
     fi
 }
@@ -86,6 +92,7 @@ function post_query {
     echolog "v=$v"
     if [ -z "$v" ]; then v="{}"; fi
     curl -s -S \
+      -x "$H3_CLI_PROXY_URL" \
       -X POST $H3_GQL_URL/ \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $H3_API_JWT" \
@@ -152,6 +159,7 @@ function main {
     then 
         refresh_jwt
         r=`post_query "$q" "$v"`
+        rc=$?
     fi
 
     echo "$r"

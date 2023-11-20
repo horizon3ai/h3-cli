@@ -91,17 +91,22 @@ function assert_H3_CLI_HOME {
     fi
 }
 
+function source_profile {
+    # check profile
+    ensure_H3_CLI_PROFILES_DIR
+    ensure_H3_CLI_PROFILE
+    profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+    if [ -e "$profile" ]; then
+        echolog "reading profile $profile ..."
+        source $profile
+    fi
+}
+
 function ensure_H3_API_KEY {
     # check env
     if [ -z "$H3_API_KEY" ]; then
         # check profile
-        ensure_H3_CLI_PROFILES_DIR
-        ensure_H3_CLI_PROFILE
-        profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
-        if [ -e "$profile" ]; then
-            echolog "reading profile $profile ..."
-            source $profile
-        fi
+        source_profile
     fi
 }
     

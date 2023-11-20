@@ -51,7 +51,7 @@ rc=$?
 if [ $rc -eq 0 ]; then 
     # upload the log
     log_upload_url=`cat <<<$res | jq -r '.data.agent_command_complete.log_upload_url'`
-    curl -X PUT -H "Content-Type: text/plain" -T "$log_file" $log_upload_url
+    curl -x "$H3_CLI_PROXY_URL" -X PUT -H "Content-Type: text/plain" -T "$log_file" $log_upload_url
     rc=$?
 else 
     echo "$res"

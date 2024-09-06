@@ -691,8 +691,11 @@ elif [ "$cmd" = "utc" ]; then
 elif [ "$cmd" = "version" ]; then
     source h3-utils
     assert_H3_CLI_HOME
-    cat $H3_CLI_HOME/version.txt
-    echo
+    if [ -z "$1" ]; then 
+        head -n 1 "$H3_CLI_HOME/version.txt"
+    else 
+        cat "$H3_CLI_HOME/version.txt"
+    fi
 
 elif [ "$cmd" = "upgrade" ]; then
     h3-upgrade

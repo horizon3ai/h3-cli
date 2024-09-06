@@ -134,18 +134,16 @@ runner_proxy_file="/etc/systemd/system/${service_name}.service.d/http-proxy.conf
 if [ -f ${docker_proxy} ]; then
 
     # Get proxy values from config.json
-    proxy=`cat $docker_proxy | jq '.proxies.default.httpProxy'`
-    proxy=`echo "$proxy" | sed 's/\"//g'`
+    proxy=`cat $docker_proxy | jq -r '.proxies.default.httpProxy'`
 
-    no_proxy=`cat $docker_proxy | jq '.proxies.default.noProxy'`
-    no_proxy=`echo "$no_proxy" | sed 's/\"//g'`
+    no_proxy=`cat $docker_proxy | jq -r '.proxies.default.noProxy'`
 
     # Check if proxy is setup already
-    if [ ! -e ${proxy} ]; then
+    if [ ! -e ${proxy} ] && [ "${proxy}" != "null" ] && [ "${no_proxy}" != "null" ]; then
 
         # Create service file for nodezero runner
-        sudo mkdir -p $runner_proxy_dir
-        sudo touch $runner_proxy_file
+        sudo -E mkdir -p $runner_proxy_dir
+        sudo -E touch $runner_proxy_file
 
         # Save proxy settings to nodezero runner's service file
         proxy_service='[Service]
@@ -156,7 +154,7 @@ Environment="http_proxy='${proxy}'"
 Environment="https_proxy='${proxy}'"
 Environment="no_proxy='${no_proxy}'"
 '
-        sudo bash -c "echo '${proxy_service}' > ${runner_proxy_file}"
+        sudo -E bash -c "echo '${proxy_service}' > ${runner_proxy_file}"
     fi
     # Proxy has not been setup, do not need to change anything.
 
@@ -175,14 +173,14 @@ if [ $rc -ne 0 ]; then
 fi
 
 # x.
-# stop any existing runners before enalbing and starting the systemd service 
+# stop any existing runners before enabling and starting the systemd service
 # (waited til after we've confirmed above that systemd is accessible)
 pkill_agent "$runner_name"
 
-# x.
-# chmod log_file to avoid 209/STDOUT errors where the started service can't write to an existing log file.
-if [ -f "$log_file" ]; then 
-    sudo -E chmod a+w "$log_file"
+# Move logfile if it exists, we do this after pkill_agent to avoid
+# possibiltiy of an event regenerating the log_file we are moving
+if [ -e "$log_file" ]; then
+    sudo mv  "$log_file" "$log_file.bak.`date +%Y%m%d%H%M%S`"
 fi
 
 # x.

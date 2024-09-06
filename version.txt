@@ -1,1 +1,121 @@
+2024-09-06: September, 2024
+
+Bug fixes:
+
+- Fixed a bug affecting the NodeZero Runner install script when Docker is configured to use a proxy.
+
+
+----------------------
 2024-07-20: July, 2024
+
+Notable updates:
+
+- Honor Docker proxy settings: NodeZero Runners configured as a systemd service now recognize and honor Docker proxy settings defined in ${HOME}/.docker/config.json.
+- Cleanup systemd service files: h3 delete-runner will now automatically cleanup its systemd service files under /etc/systemd/system/{runner_name}*
+- Automatic docker pruning: Define the env var H3_CLI_DOCKER_PRUNE=1 and h3-run-nodezero will automatically prune unused docker containers and images, via sudo docker system prune -a -f, prior to running NodeZero.  This helps avoid running out of disk space due to old NodeZero images.  This is especially useful when running pentests on a regular schedule using a NodeZero Runner.
+
+New subcommands:
+
+- h3 runner-services - Shows all Runner services registered with systemd on the local machine
+- h3 weaknesses-stream {op_id} - Streams all weaknesses from the given {op_id}
+- h3 gql-stream {graphql-file} {array-field} [{vars}] - Streams the output from the paginated query in {graphql-file}
+
+
+--------------------------
+2023-11-20: November, 2023
+
+Bug fixes:
+
+- Fixed an "API request failed" error that NodeZero Runners in the EU region would hit after initial installation (restarting the Runner resolved the issue).
+
+
+-------------------------
+2023-10-30: October, 2023
+
+New Features:
+
+- Auto-Injected Credentials. You can now use the h3-cli and a NodeZero Runner to auto-inject credentials into a regularly scheduled pentest.
+
+New Subcommands:
+
+- h3 create-auto-injected-credential
+- h3 auto-injected-credentials
+- h3 delete-auto-injected-credential
+
+
+---------------------------
+2023-09-05: September, 2023
+
+Auto-restart NodeZero Runners: We've added support for registering NodeZero Runners as a system service using systemd on Linux. This enables auto-restart of the NodeZero Runner when the system reboots or the Runner process fails for any reason.
+
+Subcommand: h3 start-runner-service {runner_name}
+
+Visit the NodeZero Runner documentation for more details.
+
+
+----------------------
+2023-06-05: June, 2023
+
+Latest updates:
+
+- added versioning (see h3 version)
+- improved/simplified installing and upgrading h3-cli (see README.md and h3 upgrade)
+- added self-upgrading capability for NodeZero Runners
+- added process pid to NodeZero Runner registration
+
+New subcommands:
+
+- h3 version
+- h3 upgrade
+- h3 env
+
+
+----------------------
+2023-06-01: June, 2023
+
+New h3 subcommands. Run h3 help for more info.
+
+- h3 runner {name}
+- h3 runner-commands {name}
+- h3 tail-runner {name}
+- h3 delete-runner {name}
+- h3 run-nodezero-on-runner {op_id} {runner_name}
+- h3 schedule {name}
+- h3 delete-profile {name}
+
+Other updates:
+
+- Added support for EU accounts.
+- NodeZero Runner command logs are now surfaced under h3 runner-commands.
+- Email notifications are now sent for NodeZero Runner command errors.
+- Several documentation updates related to API key permissions, NodeZero Runners, and creating pentest schedules.
+
+
+---------------------
+2023-05-01: May, 2023
+
+Added new subcommands:
+
+- h3 archive-pentest
+- h3 unarchive-pentest
+- h3 delete-pentest
+- h3 gql-describe
+
+Changed agent-related subcommand names to new "Runner" terminology (note that the old "agent" subcommands are still supported):
+
+- h3 agents -> h3 runners
+- h3 start-agent -> h3 start-runner
+- h3 ps-agent -> h3 ps-runner
+- h3 stop-agent -> h3 stop-runner
+- h3 hello-agent -> h3 hello-runner
+
+Updated documentation related to NodeZero Runners.
+
+
+-----------------------
+2023-04-01: April, 2023
+
+Minor updates:
+
+- Updates to install.sh to use the currently active h3-cli profile, if defined.
+- Made {h3-api-key} an optional parameter on install.sh. The user can configure it manually in ~/.h3/default.env.

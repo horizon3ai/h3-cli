@@ -128,6 +128,12 @@ As of June, 2023, you can view your current version of h3-cli via:
 h3 version
 ```
 
+You can view the full history of versions and release notes via:
+
+```shell
+h3 version -v
+```
+
 
 ## Getting started 
 

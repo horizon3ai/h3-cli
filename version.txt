@@ -1,3 +1,13 @@
+2024-11-21: November, 2024
+
+Notable updates:
+
+- Added azure-mfa as an Auto-Injected Credential type. h3 create-auto-injected-credential '{"key_type":"azure-mfa", "mfa_device_flow_id":"12344321-4321-1234-4321-123443211234"}'
+- Create Auto-Injected credentials in Kubernetes: h3 create-auto-injected-credential {json} kubernetes {kubernetes-namespace} {kubernetes-runner-name}
+- Bug fixes related to using the system's http_proxy/https_proxy settings
+
+
+----------------------
 2024-09-06: September, 2024
 
 Bug fixes:

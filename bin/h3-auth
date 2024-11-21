@@ -20,8 +20,7 @@ function gen_jwt {
         echo '{"token":"sandbox"}'
         return 0
     fi
-    curl -s -S \
-      -x "$H3_CLI_PROXY_URL" \
+    run_curl -s -S \
       -X POST $H3_AUTH_URL \
       -H 'Content-Type: application/json' \
       -d @- <<HERE 

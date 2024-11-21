@@ -290,3 +290,13 @@ function build_op_id_args {
 HERE
 }
 
+
+function run_curl {
+    if [ -z "$H3_CLI_PROXY_URL" ]; then 
+        echolog "DEBUG: running: curl $*"
+        curl "$@"
+    else 
+        echolog "DEBUG: running: curl -x $H3_CLI_PROXY_URL $*"
+        curl -x "$H3_CLI_PROXY_URL" "$@"
+    fi
+}

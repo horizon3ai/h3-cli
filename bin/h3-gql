@@ -62,8 +62,7 @@ function post_query {
     echolog "q=$q"
     echolog "v=$v"
     if [ -z "$v" ]; then v="{}"; fi
-    curl -s -S \
-      -x "$H3_CLI_PROXY_URL" \
+    run_curl -s -S \
       -X POST $H3_GQL_URL/ \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $H3_API_JWT" \

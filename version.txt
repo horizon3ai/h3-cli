@@ -1,3 +1,12 @@
+2025-03-26: March, 2025
+
+Notable updates:
+
+- Capture IP Address: NodeZero runners will capture their host IP address to be informative and debugging purposes
+- Bug fixes in stop-runner and delete-runner that prevented the systemd service from being stopped and removed
+
+
+----------------------
 2024-11-21: November, 2024
 
 Notable updates:

@@ -57,8 +57,9 @@ function build_json_params {
     pid=$$
     uid=$UID
     auto_injected_credential_uuids=`build_auto_injected_credential_uuids_param`
+    ip_addr=`get_ip_address`
     cat <<HERE
-{"input":{"name":"$name","uname":"$uname","log_file":"$log_file","h3_cli_version":"$h3_cli_version","pid":"$pid","uid":"$UID","auto_injected_credential_uuids":$auto_injected_credential_uuids}}
+{"input":{"name":"$name","uname":"$uname","log_file":"$log_file","h3_cli_version":"$h3_cli_version","pid":"$pid","uid":"$UID","auto_injected_credential_uuids":$auto_injected_credential_uuids,"ip_addr":"$ip_addr"}}
 HERE
 }
 

@@ -423,8 +423,11 @@ function cmd_stop_agent {
             # fi
         fi
     else 
-        if is_systemd_running; then 
-            service_name="nodezero-runner-$runner_name"
+        if is_systemd_running; then
+            # Must slugify the runner name to match what we do in `h3-start-runner-service`
+            runner_name_slug=`slugify "$runner_name"`
+            
+            service_name="nodezero-runner-$runner_name_slug"
             echo sudo systemctl stop "$service_name"
             sudo systemctl stop "$service_name"
             rc=$?

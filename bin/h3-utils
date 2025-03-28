@@ -300,3 +300,24 @@ function run_curl {
         curl -x "$H3_CLI_PROXY_URL" "$@"
     fi
 }
+
+function get_ip_address {
+    local ip_addr=''
+    if [[ "${OSTYPE}" == darwin* ]]; then
+        # OSX
+        ip_addr=$(ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v '[127.0|172.17].0.1' | awk '{ print $2 }' | cut -f2 -d: | head -n1)
+        RESULT=$?
+    else
+        # Linux
+        ip_addr=$(ip addr show $(ip route | awk '/default/ { print $5 }') | grep "inet" | head -n 1 | awk '/inet/ {print $2}' | cut -d'/' -f1)
+        RESULT=$?
+    fi
+
+    # command to obtain IP Address failed; default to empty value
+    if [ $RESULT -ne 0 ]; then
+        ip_addr=''
+    fi 
+
+    echo "$ip_addr"
+    return
+}

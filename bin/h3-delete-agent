@@ -27,8 +27,13 @@ res=`h3-gql delete_agent "$json_params"`
 rc=$?
 if [ $rc -eq 0 ]; then 
     cat <<<$res | jq '.data.delete_agent.agent'
-else 
-    echo "$res"; 
+
+elif [[ "$res" == *"does not exist"* ]] ; then
+    echoerr "Runner with name $agent_name was not found"
+    # Continue with cleanup
+
+else
+    echo "$res";
     exit $rc
 fi
 
@@ -36,8 +41,17 @@ fi
 # Remove runner service
 # https://serverfault.com/questions/1052655/what-is-the-canonical-method-for-removing-a-unit-service-file-from-systemd
 if is_systemd_running; then
-    service_name="nodezero-runner-$agent_name.service"
+    # Must slugify the runner name to match what we do in `h3-start-runner-service`
+    agent_name_slug=`slugify "$agent_name"`
+
+    service_name="nodezero-runner-$agent_name_slug.service"
     sudo systemctl stop $service_name
+    rc=$?
+
+    if [ $rc -ne 0 ]; then
+        echoerr "Failed to stop service $service_name"
+        exit $rc
+    fi
     sudo systemctl disable $service_name &> /dev/null
 
     # Cleanup artifacts (/etc/systemd/system/nodezero-runner-<name>.service and .service.d files)

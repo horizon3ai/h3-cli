@@ -1,3 +1,63 @@
+2025-05-02: May, 2025
+
+UPDATE: POTENTIAL BREAKING CHANGE to action_logs query:
+
+We made significant improvements to the performance of the action logs query (h3 gql action_logs {op-id}). 
+However, as a result, the payload returned by the query has changed.  The mitre_mappings field has been 
+lifted out of module_meta and added to the ActionLog type directly.  If you are using this query, please 
+adjust your query parsers as needed.
+
+The old payload:
+
+  fragment ActionLogFragment on ActionLog {
+      start_time
+      end_time
+      endpoint_ip
+      cmd
+      module_id
+      module_name
+      module_description
+      module_meta {
+          mitre_mappings {
+              mitre_tactic_id
+              mitre_technique_id
+              mitre_subtechnique_id
+          }
+      }
+      target_h3_names
+      exit_code
+      op_id
+  }
+
+The new payload:
+
+  fragment ActionLogFragment on ActionLog {
+      start_time
+      end_time
+      endpoint_ip
+      cmd
+      module_id
+      module_name
+      module_description
+      mitre_mappings {
+          mitre_tactic_id
+          mitre_technique_id
+          mitre_subtechnique_id
+      }
+      target_h3_names
+      exit_code
+      op_id
+  }
+
+
+Other notable updates:
+
+- Added optional h3env parameter to install scripts (easy_install.sh, install.sh), for selecting the H3 regional env 
+  to connect to (prod, prod_eu, fh-prod).
+- Added new subcommand h3 gql-def, for fetching GraphQL API documentation for a given GraphQL type, field, or enum.
+
+
+-----------------------
 2025-03-26: March, 2025
 
 Notable updates:
@@ -6,7 +66,7 @@ Notable updates:
 - Bug fixes in stop-runner and delete-runner that prevented the systemd service from being stopped and removed
 
 
-----------------------
+--------------------------
 2024-11-21: November, 2024
 
 Notable updates:
@@ -16,7 +76,7 @@ Notable updates:
 - Bug fixes related to using the system's http_proxy/https_proxy settings
 
 
-----------------------
+---------------------------
 2024-09-06: September, 2024
 
 Bug fixes:

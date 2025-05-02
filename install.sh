@@ -2,7 +2,7 @@
 #
 # install script for h3-cli
 #
-# usage: bash install.sh [{h3-api-key}]
+# usage: bash install.sh [ {h3-api-key} [ {h3-env} ] ]
 #
 # 1. install jq
 # 1b. install yq (currently disabled)
@@ -160,6 +160,23 @@ if [ -z "$H3_API_KEY" ]; then
     H3_API_KEY=$API_KEY_UNSPECIFIED
 fi
 
+# determine GQL and AUTH endpoints
+h3_env=$2
+case $h3_env in
+    "prod")
+        H3_AUTH_URL="https://api.horizon3ai.com/v1/auth"
+        H3_GQL_URL="https://api.horizon3ai.com/v1/graphql"
+        ;;
+    "prod_eu")
+        H3_AUTH_URL="https://api.horizon3ai.eu/v1/auth"
+        H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
+        ;;
+    "fh-prod")
+        H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
+        H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+        ;;
+esac
+
 # if H3_CLI_PROFILE is already set, use it, otherwise set to "default".
 if [ -z "$H3_CLI_PROFILE" ]; then
     H3_CLI_PROFILE="default"
@@ -167,19 +184,43 @@ fi
 
 # if ~/.h3/{profile}.env does not exist, create it and populate it with H3_API_KEY.
 profile_file="$HOME/.h3/$H3_CLI_PROFILE.env"
-if [ ! -e "$profile_file" ]; then 
+if [ ! -e "$profile_file" ]; then
     echo "[.] Creating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
     mkdir -p $HOME/.h3
     cat <<HERE > "$profile_file"
 H3_API_KEY=$H3_API_KEY
 HERE
+    # add GQL and AUTH endpoints if they were provided
+    if [ "$H3_AUTH_URL" ]; then
+        echo "H3_AUTH_URL=$H3_AUTH_URL" >> "$profile_file"
+    fi
+    if [ "$H3_GQL_URL" ]; then
+        echo "H3_GQL_URL=$H3_GQL_URL" >> "$profile_file"
+    fi
+
     chmod -R 700 $HOME/.h3
 
-# if ~/.h3/{profile}.env does exist, AND an api key was provided, then update the profile.
+# if ~/.h3/{profile}.env does exist, AND an api key AND h3_env was provided, then update the profile.
+elif [ "$H3_API_KEY" != "$API_KEY_UNSPECIFIED" ] && [ "$H3_AUTH_URL" ]; then
+    echo "[.] Updating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
+    mv "$profile_file" "$profile_file.bak"
+    cat "$profile_file.bak" | \
+      sed -e "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/" | grep -v "H3_AUTH_URL\|H3_GQL_URL" > "$profile_file"
+    # add/update GQL and AUTH endpoints if they were provided
+    if [ $H3_AUTH_URL ]; then
+        echo "H3_AUTH_URL=$H3_AUTH_URL" >> "$profile_file"
+    fi
+    if [ $H3_GQL_URL ]; then
+        echo "H3_GQL_URL=$H3_GQL_URL" >> "$profile_file"
+    fi
+
+# if ~/.h3/{profile}.env does exist, AND an api key was provided, but no h3_env was provided, then update the profile.
 elif [ "$H3_API_KEY" != "$API_KEY_UNSPECIFIED" ]; then
     echo "[.] Updating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
     mv "$profile_file" "$profile_file.bak"
-    cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/" > "$profile_file"
+    cat "$profile_file.bak" | \
+      sed -e "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/"  > "$profile_file"
+
 
 # the profile exists, and H3_API_KEY was not provided.
 # read it in so H3_API_KEY gets set.  

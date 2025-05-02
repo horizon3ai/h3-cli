@@ -1,0 +1,41 @@
+query q(
+    $id: String! = "Query"
+) {
+    graphql_def(id: $id) {
+        ...GraphQLDefFragment
+
+        related_types {
+            ...RelatedTypesFragment
+        }
+
+        fields {
+            ...FieldFragment
+        }
+    }
+}
+
+
+fragment GraphQLDefFragment on GraphQLDef {
+    id
+    description
+    declaration
+    name
+    type
+    type_name
+    args
+}
+
+fragment FieldFragment on GraphQLDef {
+    id
+    declaration 
+    description
+}
+
+fragment RelatedTypesFragment on GraphQLDef {
+    id 
+    description 
+    type_name
+    fields {
+        ...FieldFragment
+    }
+}

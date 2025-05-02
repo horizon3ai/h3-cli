@@ -80,6 +80,9 @@ h3 checkenv                         # Run the checkenv script to check for NodeZ
 h3 version                          # The h3-cli version.
 h3 upgrade                          # Upgrade h3-cli to the latest version.
 h3 env                              # List h3-cli environment configuration.
+h3 gql-def {id}                     # Fetch the GraphQL API schema definition for the given schema element {id}. 
+                                    # {id} can be a type, field, enum, or enum value id, eg. "Query", "Query.pentests_page", "AuthzRole", "AuthzRole.ORG_ADMIN".
+                                    # Note that field and enum value ids are always prefixed with their containing type or enum.
 
 
 -----------------
@@ -535,9 +538,6 @@ elif [ "$cmd" = "hello-world" ]; then
 elif [ "$cmd" = "whoami" ]; then
     cmd_whoami
 
-elif [ "$cmd" = "auth" ]; then
-    h3-auth $*
-
 elif [ "$cmd" = "env" ]; then
     cmd_env $*
 
@@ -552,15 +552,6 @@ elif [ "$cmd" = "add-profile" -o "$cmd" = "save-profile" ]; then
 
 elif [ "$cmd" = "delete-profile" ]; then
     cmd_delete_profile $*
-
-elif [ "$cmd" = "gql" ]; then
-    h3-gql $*
-
-elif [ "$cmd" = "gql-stream" ]; then
-    h3-gql-stream $*
-
-elif [ "$cmd" = "gql-resolve-fragments" ]; then
-    h3-gql-resolve-fragments "$@"
 
 elif [ "$cmd" = "pentests" ]; then
     cmd_pentests $*
@@ -577,23 +568,8 @@ elif [ "$cmd" = "latest-pentest" ]; then
 elif [ "$cmd" = "run-pentest" -o "$cmd" = "schedule-pentest" ]; then
     cmd_create_pentest $*
 
-elif [ "$cmd" = "run-pentest-and-nodezero" ]; then
-    h3-run-pentest-and-nodezero $*
-
-elif [ "$cmd" = "run-pentests" ]; then
-    h3-run-pentests $*
-
-elif [ "$cmd" = "cancel-pentest" ]; then
-    h3-cancel-pentest $*
-
 elif [ "$cmd" = "launch-nodezero" -o "$cmd" = "run-nodezero" ]; then
     h3-run-nodezero $*
-
-elif [ "$cmd" = "pause-pentest" ]; then
-    h3-pause-pentest $*
-
-elif [ "$cmd" = "resume-pentest" ]; then
-    h3-resume-pentest $*
 
 elif [ "$cmd" = "archive-pentest" ]; then
     cmd_archive_pentest $* "true"
@@ -603,9 +579,6 @@ elif [ "$cmd" = "unarchive-pentest" ]; then
 
 elif [ "$cmd" = "delete-pentest" ]; then
     cmd_delete_pentest $*
-
-elif [ "$cmd" = "pentest-reports" ]; then
-    h3-pentest-reports $*
 
 elif [ "$cmd" = "checkenv" ]; then
     source h3-env
@@ -634,9 +607,6 @@ elif [ "$cmd" = "start-agent" -o "$cmd" = "start-runner" ]; then
 
 elif [ "$cmd" = "stop-agent" -o "$cmd" = "stop-runner" ]; then
     cmd_stop_agent "$@"
-
-elif [ "$cmd" = "start-runner-service" ]; then
-    h3-start-runner-service "$@"
 
 elif [ "$cmd" = "ps-agent" -o "$cmd" = "ps-runner" ]; then
     source h3-utils
@@ -670,29 +640,11 @@ elif [ "$cmd" = "run-nodezero-on-agent" -o "$cmd" = "run-nodezero-on-runner" ]; 
 elif [ "$cmd" = "delete-agent" -o "$cmd" = "delete-runner" ]; then
     h3-delete-agent "$@"
 
-elif [ "$cmd" = "create-scheduled-action" ]; then
-    h3-create-scheduled-action "$@"
-
-elif [ "$cmd" = "delete-scheduled-action" ]; then
-    h3-delete-scheduled-action "$@"
-
-elif [ "$cmd" = "trigger-scheduled-action" ]; then
-    h3-trigger-scheduled-action "$@"
-
 elif [ "$cmd" = "schedules" ]; then
     res=`h3-gql schedules`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.schedules[]'
     else echo "$res"; fi
-
-elif [ "$cmd" = "schedule" ]; then
-    h3-schedule "$@"
-
-elif [ "$cmd" = "enable-schedule" ]; then
-    h3-enable-schedule "$@"
-
-elif [ "$cmd" = "disable-schedule" ]; then
-    h3-disable-schedule "$@"
 
 elif [ "$cmd" = "utc" ]; then
     date -u
@@ -716,18 +668,6 @@ elif [ "$cmd" = "gql-describe" ]; then
     if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq
     else echo "$res"; fi
 
-elif [ "$cmd" = "create-auto-injected-credential" ]; then
-    h3-create-auto-injected-credential "$@"
-
-elif [ "$cmd" = "inject-auto-injected-credential" ]; then
-    h3-inject-auto-injected-credential "$@"
-
-elif [ "$cmd" = "delete-auto-injected-credential" ]; then
-    h3-delete-auto-injected-credential "$@"
-
-elif [ "$cmd" = "delete-auto-injected-credential-secret" ]; then
-    h3-delete-auto-injected-credential-secret "$@"
-
 elif [ "$cmd" = "auto-injected-credentials" ]; then
     res=`h3-gql auto_injected_credentials`
     rc=$?
@@ -742,7 +682,14 @@ elif [ "$cmd" = "weaknesses-stream" ]; then
     h3-gql-stream weaknesses .data.weaknesses_page.weaknesses "$json_params"
 
 else 
-    echoerr "ERROR: unrecognized command: \"$cmd\".  Run \"h3 help\" for usage info."
-    exit 1
+    # check if the command is defined in the bin directory
+    source h3-utils
+    assert_H3_CLI_HOME
+    if [ -f "$H3_CLI_HOME/bin/h3-$cmd" ]; then 
+        "$H3_CLI_HOME/bin/h3-$cmd" "$@"   
+    else 
+        echoerr "ERROR: unrecognized command: \"$cmd\".  Run \"h3 help\" for usage info."
+        exit 1
+    fi
 fi
 

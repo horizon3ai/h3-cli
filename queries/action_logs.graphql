@@ -21,12 +21,10 @@ fragment ActionLogFragment on ActionLog {
     module_id
     module_name
     module_description
-    module_meta {
-        mitre_mappings {
-            mitre_tactic_id
-            mitre_technique_id
-            mitre_subtechnique_id
-        }
+    mitre_mappings {
+        mitre_tactic_id
+        mitre_technique_id
+        mitre_subtechnique_id
     }
     target_h3_names
     exit_code

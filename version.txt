@@ -1,3 +1,8 @@
+2025-06-05: June, 2025
+
+Add additional environments for h3env parameter (us, eu, fed-fh, fed-h3)
+
+---------------------
 2025-05-02: May, 2025
 
 UPDATE: POTENTIAL BREAKING CHANGE to action_logs query:

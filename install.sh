@@ -175,6 +175,22 @@ case $h3_env in
         H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
         H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
         ;;
+    "us")
+        H3_AUTH_URL="https://api.gateway.horizon3ai.com/v1/auth"
+        H3_GQL_URL="https://api.gateway.horizon3ai.com/v1/graphql"
+        ;;
+    "eu")
+        H3_AUTH_URL="https://api.gateway.horizon3ai.eu/v1/auth"
+        H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
+        ;;
+    "fed-fh")
+        H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
+        H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+        ;;
+    "fed-h3")
+        H3_AUTH_URL=""
+        H3_GQL_URL=""
+        ;;
 esac
 
 # if H3_CLI_PROFILE is already set, use it, otherwise set to "default".

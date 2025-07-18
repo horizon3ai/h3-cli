@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# Shell script for rotating the key pair used to send sensitive data to the runner.
+# 
+# usage: h3-rotate-agent-keys
+#
+
+# 0.
+# include common utils
+source h3-env
+
+# 1.
+# create key pair with passphrase
+if [ -e "$H3_CLI_PROFILES_DIR/private_key.pem" ]; then
+    echoerr "INFO: Removing existing private key"
+    rm "$H3_CLI_PROFILES_DIR/private_key.pem"
+fi
+passphrase=`head -c 32 /dev/urandom | base64`
+openssl genpkey -algorithm RSA -out "$H3_CLI_PROFILES_DIR/private_key.pem" -pkeyopt rsa_keygen_bits:2048 -pass pass:$passphrase
+public_key=`openssl rsa -pubout -in "$H3_CLI_PROFILES_DIR/private_key.pem" -outform PEM -passin pass:$passphrase`
+
+
+# 2. 
+# build variables payload
+json_input="{\"input\":{\"public_key\":\"$public_key\",\"private_key_passphrase\":\"$passphrase\"}}"
+
+# 3.
+# invoke h3-gql
+res=`h3-gql update_agent_keys $json_input`
+rc=$?
+if [ $rc -ne 0 ]; then
+    echoerr "ERROR: Failed to rotate agent keys: $res"
+    exit $rc
+fi
+
+echoerr "INFO: Agent keys rotated successfully"
+exit 0

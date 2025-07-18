@@ -1,3 +1,18 @@
+2025-07-18: July, 2025
+
+easy_install.sh updates:
+- <h3_env> now accepts `https://api.` urls as an input and sets .h3/default.env values for `H3_AUTH_URL` and `H3_GQL_URL`
+- add argument <download_url> to easy_install.sh eg. `easy_install.sh <api_key> <runner_name> <h3_env> <download_url>`
+
+h3-cli Commands:
+- `h3 upgrade ng`  sets the `downloads.horizon3ai.com` url as the download URL for making upgrades to h3-cli.  This replaces calls to `github.com`
+- Added `~/.h3/__global__.env` to hold variables that are set across profiles.  Currently only holds `H3_CLI_DOWNLOAD_URL` to specify where to download CLI from
+- `git clone` has been removed as a install option.  `git pull`, `unzip`, and `tar` are still available when updating from Github
+- Installing and upgrade from `downloads.horizon3ai.com` only uses unzip to install/upgrade
+- NEW commands `cache-secret` and `install-ad-agent`
+- Restarts active runners after h3-cli is upgraded
+
+---------------------
 2025-06-05: June, 2025
 
 Add additional environments for h3env parameter (us, eu, fed-fh, fed-h3)

@@ -31,7 +31,6 @@ HERE
 }
 
 
-
 function refresh_jwt_fallback_eu {
     refresh_jwt
     rc=$?
@@ -39,7 +38,8 @@ function refresh_jwt_fallback_eu {
         # try eu
         H3_AUTH_URL=https://api.horizon3ai.eu/v1/auth
         H3_GQL_URL=https://api.horizon3ai.eu/v1/graphql
-        refresh_jwt 
+
+        refresh_jwt
         rc=$?
         if [ $rc -ne 0 ]; then
             echoerr "ERROR: Authentication Failed. For more details, enable verbose logging (export H3_CLI_VERBOSE=1) and retry." 

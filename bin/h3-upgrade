@@ -4,4 +4,18 @@
 #
 
 source h3-env
+
+update_download_url=$1
+
+# Reset update_download_url if not set to ng
+if [ "$update_download_url" == "ng" ]; then
+    if [ -f $H3_CLI_PROFILES_DIR/__global__.env ]; then
+        search_and_replace $H3_CLI_PROFILES_DIR/__global__.env "H3_CLI_DOWNLOAD_URL" "H3_CLI_DOWNLOAD_URL=https://downloads.horizon3ai.com/utilities/cli/h3-cli.zip"
+    else
+        # Create the __global__.env file
+        touch $H3_CLI_PROFILES_DIR/__global__.env
+        echo "H3_CLI_DOWNLOAD_URL=https://downloads.horizon3ai.com/utilities/cli/h3-cli.zip" > $H3_CLI_PROFILES_DIR/__global__.env
+    fi
+fi
+
 bash $H3_CLI_HOME/easy_install.sh

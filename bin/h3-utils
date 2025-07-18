@@ -321,3 +321,19 @@ function get_ip_address {
     echo "$ip_addr"
     return
 }
+
+function search_and_replace() {
+    # Usage: search_and_replace <file> <search_string> <replacement_line>
+    local file="$1"
+    local search="$2"
+    local replacement="$3"
+
+    awk -v search="$search" -v replacement="$replacement" '
+    {
+        if (index($0, search) > 0) {
+            print replacement
+        } else {
+            print $0
+        }
+    }' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}

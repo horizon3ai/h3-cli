@@ -1,0 +1,3 @@
+mutation m($input:UpdateAgentKeysInput!) {
+    update_agent_keys(input:$input)
+}

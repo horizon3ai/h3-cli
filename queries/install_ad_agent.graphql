@@ -1,0 +1,9 @@
+mutation install_ad_agent($uuid: ID!, $h3_cli_profiles_dir: String!) {
+  install_ad_agent(input: {
+    uuid: $uuid,
+    h3_cli_profiles_dir: $h3_cli_profiles_dir
+  }) {
+    install_script_url
+    api_key
+  }
+}

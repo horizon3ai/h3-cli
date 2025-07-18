@@ -142,7 +142,7 @@ function main {
     # check errors
     # echolog "checking for errors"
     error_message=`cat <<<$r | jq -r .errors[]?.message`
-    if [ ! -z "$error_message" ]; then 
+    if [ -n "$error_message" ]; then 
         exit 1
     fi
 

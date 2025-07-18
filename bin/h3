@@ -79,6 +79,7 @@ h3 gql-stream {graphql-file} {array-field} [{vars}]
 h3 checkenv                         # Run the checkenv script to check for NodeZero compatibility.
 h3 version                          # The h3-cli version.
 h3 upgrade                          # Upgrade h3-cli to the latest version.
+h3 upgrade ng                       # Upgrade h3-cli to the latest version and use the NodeZero Gateways (NG).
 h3 env                              # List h3-cli environment configuration.
 h3 gql-def {id}                     # Fetch the GraphQL API schema definition for the given schema element {id}. 
                                     # {id} can be a type, field, enum, or enum value id, eg. "Query", "Query.pentests_page", "AuthzRole", "AuthzRole.ORG_ADMIN".
@@ -659,7 +660,7 @@ elif [ "$cmd" = "version" ]; then
     fi
 
 elif [ "$cmd" = "upgrade" ]; then
-    h3-upgrade
+    h3-upgrade "$@"
 
 elif [ "$cmd" = "gql-describe" ]; then
     source h3-env

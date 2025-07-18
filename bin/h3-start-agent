@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Starts the H3 agent.
-# Intended to be run as a backgraound process.
+# Intended to be run as a background process.
 #
 # See: $ h3 start-agent
 #
@@ -34,9 +34,31 @@ function read_auto_injected_credential_uuids {
 }
 
 
+function read_ad_account_credential_uuids {
+    if [ -d "$H3_CLI_PROFILES_DIR/ad_agent" ]; then
+        for x in $H3_CLI_PROFILES_DIR/ad_agent/*.h3ec; do 
+            if [ -f "$x" ]; then
+                basename "$x" .h3ec
+            fi
+        done
+    fi
+}
+
+
 # :returns: a json array containing the uuids from read_auto_injected_credential_uuids.
 function build_auto_injected_credential_uuids_param {
     uuids=`read_auto_injected_credential_uuids`
+    if [ -z "$uuids" ]; then 
+        echo '[]'
+    else
+        jq -ncR '[inputs]' <<< "$uuids"
+    fi
+}
+
+
+# :returns: a json array containing the uuids from read_ad_account_credential_uuids.
+function build_ad_account_credential_uuids_param {
+    uuids=`read_ad_account_credential_uuids`
     if [ -z "$uuids" ]; then 
         echo '[]'
     else
@@ -57,9 +79,10 @@ function build_json_params {
     pid=$$
     uid=$UID
     auto_injected_credential_uuids=`build_auto_injected_credential_uuids_param`
+    ad_account_credential_uuids=`build_ad_account_credential_uuids_param`
     ip_addr=`get_ip_address`
     cat <<HERE
-{"input":{"name":"$name","uname":"$uname","log_file":"$log_file","h3_cli_version":"$h3_cli_version","pid":"$pid","uid":"$UID","auto_injected_credential_uuids":$auto_injected_credential_uuids,"ip_addr":"$ip_addr"}}
+{"input":{"name":"$name","uname":"$uname","log_file":"$log_file","h3_cli_version":"$h3_cli_version","pid":"$pid","uid":"$UID","auto_injected_credential_uuids":$auto_injected_credential_uuids,"ip_addr":"$ip_addr","ad_account_credential_uuids":$ad_account_credential_uuids}}
 HERE
 }
 
@@ -93,7 +116,17 @@ if [ -z "$log_file" ]; then
 fi
 
 
-# 2.
+# 2. register agent
+uname=`uname -a`
+json_params=`build_json_params "$agent_name" "$uname" "$log_file" "$h3_cli_version"`
+res=`h3-gql register_agent "$json_params"`
+rc=$?
+if [ $rc -ne 0 ]; then
+    echoerr "[$agent_name:$$] API request failed: rc=$rc, res=$res"
+fi
+
+
+# 3.
 # periodically poll for the next command to run
 echoerr "[$agent_name:$$] NodeZero Runner started."
 while [ 1 ]; do

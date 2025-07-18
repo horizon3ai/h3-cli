@@ -1,0 +1,3 @@
+mutation m($input:AgentInput!) {
+    register_agent(input:$input)
+}

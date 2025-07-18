@@ -62,6 +62,23 @@ function pick_jq_url {
     fi
 }
 
+function pick_jq_url_ng {
+    system_type=`get_system_type`
+    u=`uname -a`
+    if [ "$system_type" = "LINUX_64" ]; then
+        echo "https://downloads.horizon3ai.com/utilities/cli/jq/jq-1.6/jq-linux64"
+        return 0
+    elif [ "$system_type" = "LINUX_32" ]; then
+        echo "https://downloads.horizon3ai.com/utilities/cli/jq/jq-1.6/jq-linux32"
+        return 0
+    elif [ "$system_type" = "MACOS_64" ]; then
+        echo "https://downloads.horizon3ai.com/utilities/cli/jq/jq-1.6/jq-osx-amd64"
+        return 0
+    else
+        echo "https://downloads.horizon3ai.com/utilities/cli/jq/jq-1.4/jq-osx-x86"
+        return 0
+    fi
+}
 
 # TODO: improve system identification
 function pick_yq_url {
@@ -100,14 +117,23 @@ fi
 # chmod executable
 chmod -R a+x $H3_CLI_HOME/bin
 
+# if H3_CLI_DOWNLOAD_URL is set, we use the ng for jq, else we use the default jq download URL.
+config_file="$HOME/.h3/__global__.env"
+if [ -e "$config_file" ]; then
+    source "$config_file"
+fi
 
-# 1. 
+# 1.
 # install jq 
 echo 
 echo "[.] Checking if jq is already installed ..."
 jqv=`jq --version 2>&1`
 if [ $? -ne 0 ]; then
-    jq_url=`pick_jq_url`
+    if [ -z "$H3_CLI_DOWNLOAD_URL" ]; then
+        jq_url=`pick_jq_url`
+    else
+        jq_url=`pick_jq_url_ng`
+    fi
     echo "[.] Installing jq from $jq_url ... "
     curl -s -L $jq_url -o $H3_CLI_HOME/bin/jq
     chmod -R a+x $H3_CLI_HOME/bin
@@ -156,42 +182,55 @@ echo "[.] DONE"
 echo 
 API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with h3-env.
 H3_API_KEY=$1
-if [ -z "$H3_API_KEY" ]; then 
+if [ -z "$H3_API_KEY" ]; then
     H3_API_KEY=$API_KEY_UNSPECIFIED
 fi
 
 # determine GQL and AUTH endpoints
 h3_env=$2
-case $h3_env in
-    "prod")
-        H3_AUTH_URL="https://api.horizon3ai.com/v1/auth"
-        H3_GQL_URL="https://api.horizon3ai.com/v1/graphql"
-        ;;
-    "prod_eu")
-        H3_AUTH_URL="https://api.horizon3ai.eu/v1/auth"
-        H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
-        ;;
-    "fh-prod")
-        H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
-        H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
-        ;;
-    "us")
-        H3_AUTH_URL="https://api.gateway.horizon3ai.com/v1/auth"
-        H3_GQL_URL="https://api.gateway.horizon3ai.com/v1/graphql"
-        ;;
-    "eu")
-        H3_AUTH_URL="https://api.gateway.horizon3ai.eu/v1/auth"
-        H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
-        ;;
-    "fed-fh")
-        H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
-        H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
-        ;;
-    "fed-h3")
-        H3_AUTH_URL=""
-        H3_GQL_URL=""
-        ;;
-esac
+if [ -z "$h3_env" ]; then
+    H3_AUTH_URL=""
+    H3_GQL_URL=""
+
+# if the env starts with https://api, then assume it's a URL and set the H3_AUTH_URL and H3_GQL_URL accordingly.
+elif [[ "$h3_env" == "https://api"* ]]; then
+    clean_h3_env="${h3_env%/}"  # remove trailing slash if any
+    H3_AUTH_URL="$clean_h3_env/v1/auth"
+    H3_GQL_URL="$clean_h3_env/v1/graphql"
+
+# A non-empty h3_env was provided, try one of the predefined environments.
+else
+    case $h3_env in
+        "prod")
+            H3_AUTH_URL="https://api.horizon3ai.com/v1/auth"
+            H3_GQL_URL="https://api.horizon3ai.com/v1/graphql"
+            ;;
+        "prod_eu")
+            H3_AUTH_URL="https://api.horizon3ai.eu/v1/auth"
+            H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
+            ;;
+        "fh-prod")
+            H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
+            H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+            ;;
+        "us")
+            H3_AUTH_URL="https://api.gateway.horizon3ai.com/v1/auth"
+            H3_GQL_URL="https://api.gateway.horizon3ai.com/v1/graphql"
+            ;;
+        "eu")
+            H3_AUTH_URL="https://api.gateway.horizon3ai.eu/v1/auth"
+            H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
+            ;;
+        "fed-fh")
+            H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
+            H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+            ;;
+        "fed-h3")
+            H3_AUTH_URL=""
+            H3_GQL_URL=""
+            ;;
+    esac
+fi
 
 # if H3_CLI_PROFILE is already set, use it, otherwise set to "default".
 if [ -z "$H3_CLI_PROFILE" ]; then
@@ -207,10 +246,10 @@ if [ ! -e "$profile_file" ]; then
 H3_API_KEY=$H3_API_KEY
 HERE
     # add GQL and AUTH endpoints if they were provided
-    if [ "$H3_AUTH_URL" ]; then
+    if [ -n "$H3_AUTH_URL" ]; then
         echo "H3_AUTH_URL=$H3_AUTH_URL" >> "$profile_file"
     fi
-    if [ "$H3_GQL_URL" ]; then
+    if [ -n "$H3_GQL_URL" ]; then
         echo "H3_GQL_URL=$H3_GQL_URL" >> "$profile_file"
     fi
 
@@ -223,10 +262,10 @@ elif [ "$H3_API_KEY" != "$API_KEY_UNSPECIFIED" ] && [ "$H3_AUTH_URL" ]; then
     cat "$profile_file.bak" | \
       sed -e "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/" | grep -v "H3_AUTH_URL\|H3_GQL_URL" > "$profile_file"
     # add/update GQL and AUTH endpoints if they were provided
-    if [ $H3_AUTH_URL ]; then
+    if [ -n "$H3_AUTH_URL" ]; then
         echo "H3_AUTH_URL=$H3_AUTH_URL" >> "$profile_file"
     fi
-    if [ $H3_GQL_URL ]; then
+    if [ -n "$H3_GQL_URL" ]; then
         echo "H3_GQL_URL=$H3_GQL_URL" >> "$profile_file"
     fi
 

@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# usage: h3-install-ad-agent {ad_agent_uuid}
+#
+# Simple shell script for installing an AD agent.
+#
+# The script will download and execute the AD agent installation script with the provided API key.
+#
+
+source h3-env
+
+# 1.
+# Validate the ad_agent_uuid is provided
+ad_agent_uuid="$1"
+if [ -z "$ad_agent_uuid" ]; then
+    echoerr "ERROR: AD agent UUID is required"
+    echoerr "Usage: h3-install-ad-agent {ad_agent_uuid}"
+    exit 1
+fi
+
+# 2.
+# Call the install_ad_agent mutation to get the install script URL and API key
+# Build GraphQL query input
+json_input="{\"uuid\":\"$ad_agent_uuid\", \"h3_cli_profiles_dir\":\"$H3_CLI_PROFILES_DIR\"}"
+
+echoerr "INFO: Fetching AD agent installation script for agent: $ad_agent_uuid"
+res=$(h3-gql install_ad_agent "$json_input")
+rc=$?
+if [ $rc -ne 0 ]; then
+    echoerr "ERROR: Failed to get AD agent installation details"
+    echo $res
+    exit $rc
+fi
+
+# 3.
+# Extract the install_script_url and api_key from the response
+install_script_url=$(echo "$res" | jq -r '.data.install_ad_agent.install_script_url')
+api_key=$(echo "$res" | jq -r '.data.install_ad_agent.api_key')
+
+if [ -z "$install_script_url" ] || [ "$install_script_url" = "null" ]; then
+    echoerr "ERROR: No installation script URL returned"
+    echo $res
+    exit 1
+fi
+
+if [ -z "$api_key" ] || [ "$api_key" = "null" ]; then
+    echoerr "ERROR: No API key returned"
+    echo $res
+    exit 1
+fi
+
+# 4.
+# Download and execute the installation script with the API key
+echoerr "INFO: Installing AD agent with UUID: $ad_agent_uuid"
+run_curl "$install_script_url" | bash -s "$api_key"
+install_rc=$?
+
+if [ $install_rc -eq 0 ]; then
+    echoerr "INFO: AD agent installation completed successfully"
+else
+    echoerr "ERROR: AD agent installation failed with exit code $install_rc"
+    exit $install_rc
+fi
+
+exit 0

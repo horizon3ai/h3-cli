@@ -292,12 +292,13 @@ HERE
 
 
 function run_curl {
+    user_agent=${H3_CLI_USER_AGENT:-"h3-cli/`h3-version`"}
     if [ -z "$H3_CLI_PROXY_URL" ]; then 
         echolog "DEBUG: running: curl $*"
-        curl "$@"
+        curl --user-agent "$user_agent" "$@"
     else 
         echolog "DEBUG: running: curl -x $H3_CLI_PROXY_URL $*"
-        curl -x "$H3_CLI_PROXY_URL" "$@"
+        curl -x "$H3_CLI_PROXY_URL" --user-agent "$user_agent" "$@"
     fi
 }
 

@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# usage: h3 version [-v]
+#
+#
+
+source h3-utils
+assert_H3_CLI_HOME
+if [ -z "$1" ]; then 
+    head -n 1 "$H3_CLI_HOME/version.txt"
+else 
+    cat "$H3_CLI_HOME/version.txt"
+fi
+
+

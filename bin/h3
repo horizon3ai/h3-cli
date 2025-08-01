@@ -305,6 +305,10 @@ function cmd_whoami {
     rc=$?
     if [ $rc -eq 0 ]; then
         cat <<<$res | jq .data.session_user_account
+        rc=$?
+        if [ $rc -ne 0 ]; then
+            echo "$res"
+        fi
     else
         echo "$res"
     fi 
@@ -649,15 +653,6 @@ elif [ "$cmd" = "schedules" ]; then
 
 elif [ "$cmd" = "utc" ]; then
     date -u
-
-elif [ "$cmd" = "version" ]; then
-    source h3-utils
-    assert_H3_CLI_HOME
-    if [ -z "$1" ]; then 
-        head -n 1 "$H3_CLI_HOME/version.txt"
-    else 
-        cat "$H3_CLI_HOME/version.txt"
-    fi
 
 elif [ "$cmd" = "upgrade" ]; then
     h3-upgrade "$@"

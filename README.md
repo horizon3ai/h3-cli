@@ -1,4 +1,10 @@
 
+## NodeZero MCP Server
+
+The NodeZero MCP Server is now available, enabling you to run and manage a locally hosted MCP Server that brings NodeZero’s Find, Fix, Verify (FFV) capabilities directly to your development and security workflows.
+
+[MCP Readme](./mcp/README.md)
+
 ## h3-cli: CLI tool for the Horizon3.ai API
 
 h3-cli is a convenient CLI (command-line interface) for accessing the 

@@ -1,3 +1,10 @@
+2025-08-01: August, 2025
+
+🚀 NEW: MCP Server Integration!
+
+- 🎉 We're now hosting a Model Context Protocol (MCP) server in our Dockerhub registry! This enables seamless AI assistant 
+  interactions with H3 APIs for advanced automation. See the README.md in the mcp folder for setup instructions.
+
 2025-07-18: July, 2025
 
 easy_install.sh updates:

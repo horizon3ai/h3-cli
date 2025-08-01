@@ -11,3 +11,5 @@ bin/jq
 bin/yq
 queries-admin
 .DS_Store
+__pycache__
+mcp/.venv

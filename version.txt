@@ -1,3 +1,8 @@
+2025-08-05: August, 2025
+
+Bug fix: Upgrading from the UI is failing due to the working directory of runner.
+
+---------------------
 2025-08-01: August, 2025
 
 🚀 NEW: MCP Server Integration!

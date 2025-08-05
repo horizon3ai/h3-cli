@@ -20,6 +20,9 @@
 # 
 #
 
+# Use $TMPDIR if defined, otherwise fallback to /tmp
+TEMP_DIR=${TMPDIR:-/tmp}
+
 function echoerr {
     echo "[`date`] $@" 1>&2;   
 }
@@ -126,7 +129,7 @@ function download_h3_cli {
     if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
         echoerr "INFO: Attempting to download h3-cli via NodeZero Gateway (NG) into $H3_CLI_HOME ..."
 
-        install_tmp_basedir="`pwd`/.h3-cli-install-tmp"
+        install_tmp_basedir="$TEMP_DIR/.h3-cli-install-tmp"
         mkdir -p "$install_tmp_basedir"
         cd "$install_tmp_basedir"
         tmp_d=`via_unzip_ng`
@@ -145,7 +148,7 @@ function download_h3_cli {
         fi
         # download into tmp dir first, to handle diffs between download methods,
         # eg. how git creates h3-cli dir and the zip download creates h3-cli-public dir.
-        install_tmp_basedir="`pwd`/.h3-cli-install-tmp"
+        install_tmp_basedir="$TEMP_DIR/.h3-cli-install-tmp"
         mkdir -p "$install_tmp_basedir"
         cd "$install_tmp_basedir"
         echoerr "INFO: Attempting to downloading h3-cli via GitHub into $H3_CLI_HOME ..."

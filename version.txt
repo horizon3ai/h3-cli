@@ -1,3 +1,13 @@
+2025-09-12: September, 2025
+
+New subcommand `h3 uninstall-ad-agent {ad-agent-uuid}` for uninstalling an AD Agent on your host.
+
+---------------------
+2025-08-12: August, 2025
+
+Bug fix: Install script error fix
+
+---------------------
 2025-08-05: August, 2025
 
 Bug fix: Upgrading from the UI is failing due to the working directory of runner.

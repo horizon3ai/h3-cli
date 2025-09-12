@@ -115,7 +115,12 @@ if [ -z "$HOME" -o ! -e "$HOME" ]; then
 fi
 
 # chmod executable
-chmod -R a+x $H3_CLI_HOME/bin
+chmod -R a+x $H3_CLI_HOME/bin &>/dev/null
+rc=$?
+if [ $rc -ne 0 ]; then
+    echoerr "chmod executables failed, trying with sudo..."
+    sudo chmod -R a+x $H3_CLI_HOME/bin
+fi
 
 # if H3_CLI_DOWNLOAD_URL is set, we use the ng for jq, else we use the default jq download URL.
 config_file="$HOME/.h3/__global__.env"
@@ -136,7 +141,13 @@ if [ $? -ne 0 ]; then
     fi
     echo "[.] Installing jq from $jq_url ... "
     curl -s -L $jq_url -o $H3_CLI_HOME/bin/jq
-    chmod -R a+x $H3_CLI_HOME/bin
+    chmod -R a+x $H3_CLI_HOME/bin &>/dev/null
+
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echoerr "chmod jq failed, trying with sudo..."
+        sudo chmod -R a+x $H3_CLI_HOME/bin
+    fi
    
     # verify
     echo "[.] Verifying $H3_CLI_HOME/bin/jq ... "

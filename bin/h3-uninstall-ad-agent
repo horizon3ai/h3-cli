@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# usage: h3-uninstall-ad-agent {ad_agent_uuid}
+#
+# Simple shell script for uninstalling an AD Agent.
+#
+
+source h3-env
+
+# 1.
+# Validate the ad_agent_uuid is provided
+ad_agent_uuid="$1"
+if [ -z "$ad_agent_uuid" ]; then
+    echoerr "ERROR: AD Agent UUID is required"
+    echoerr "Usage: h3-uninstall-ad-agent {ad_agent_uuid}"
+    exit 1
+fi
+
+# 2.
+# Call the uninstall_ad_agent mutation
+json_input="{\"ad_agent_uuid\":\"$ad_agent_uuid\"}"
+
+
+res=$(h3-gql uninstall_ad_agent "$json_input")
+rc=$?
+if [ $rc -ne 0 ]; then
+    echoerr "ERROR: Failed to get AD Agent uninstall instructions"
+    echo "$res"
+    exit $rc
+fi
+
+# 3.
+# Check the uninstallation result
+uninstall_script_url=$(echo "$res" | jq -r '.data.uninstall_ad_agent')
+if [ -z "$uninstall_script_url" ] || [ "$uninstall_script_url" = "null" ]; then
+    echoerr "ERROR: No uninstall script URL returned"
+    echo $res
+    exit 1
+fi
+
+echoerr "INFO: Uninstalling AD Agent: $ad_agent_uuid"
+run_curl "$uninstall_script_url" | bash
+uninstall_rc=$?
+
+if [ $uninstall_rc -eq 0 ]; then
+    echoerr "INFO: AD Agent uninstalled successfully"
+else
+    echoerr "ERROR: AD Agent uninstall failed with exit code $uninstall_rc"
+    exit $uninstall_rc
+fi
+
+exit 0

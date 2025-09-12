@@ -1,0 +1,3 @@
+mutation uninstall_ad_agent($ad_agent_uuid: ID!) {
+    uninstall_ad_agent(ad_agent_uuid: $ad_agent_uuid) 
+}

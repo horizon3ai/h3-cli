@@ -37,8 +37,14 @@ function ensure_H3_CLI_PROFILE {
     fi
 }
 
+# note: dup'ed in easy_install.sh
 function ensure_H3_CLI_PROFILES_DIR {
     if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+        # check $HOME is defined and exists
+        if [ -z "$HOME" -o ! -e "$HOME" ]; then 
+            echoerr "ERROR: This script requires the HOME environent variable to be set to the user's home directory."
+            exit 1
+        fi
         H3_CLI_PROFILES_DIR="$HOME/.h3"
     fi
 }
@@ -243,6 +249,10 @@ function slugify {
 # @returns the file name
 function find_query_file {
     f=$1
+    if [ -z "$f" ]; then
+        echoerr "ERROR: graphql query file required"
+        exit 1
+    fi
     echolog "searching for GQL file $f in H3_CLI_GQL_PATH=$H3_CLI_GQL_PATH ..."
     if [[ $f == *"/"* ]]; then
         if [ -e "$f" ]; then
@@ -323,18 +333,40 @@ function get_ip_address {
     return
 }
 
-function search_and_replace() {
-    # Usage: search_and_replace <file> <search_string> <replacement_line>
-    local file="$1"
-    local search="$2"
-    local replacement="$3"
+# create a backup of the profile file
+# note: dup'ed in easy_install.sh
+function backup_profile {
+    profile_file="$1"
+    if [ -e "$profile_file" ]; then
+        # echo "[.] Saving backup of h3-cli profile to $profile_file.bak ..."
+        cp "$profile_file" "$profile_file.bak"
+    fi
+}
 
-    awk -v search="$search" -v replacement="$replacement" '
-    {
-        if (index($0, search) > 0) {
-            print replacement
-        } else {
-            print $0
-        }
-    }' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+# create empty profile if it does not exist
+# note: dup'ed in easy_install.sh
+function ensure_profile {
+    profile_file="$1"
+    if [ ! -e "$profile_file" ]; then
+        profile_dir=`dirname "$profile_file"`
+        mkdir -p "$profile_dir"
+        touch "$profile_file"
+        chmod -R 700 "$profile_dir"
+    fi
+}
+
+# add var_name=var_value to profile, or update if it already exists
+# note: dup'ed in easy_install.sh
+function upsert_profile_var {
+    profile_file="$1"
+    var_name="$2"
+    var_value="$3"
+    if [ -z "$var_value" ]; then
+        return
+    fi
+    # make tmpfile, remove old setting, add new setting, rm tmpfile
+    mv "$profile_file" "$profile_file.tmp"
+    cat "$profile_file.tmp" | grep -v "$var_name=" > "$profile_file"
+    echo "$var_name=$var_value" >> "$profile_file"
+    rm -f "$profile_file.tmp"
 }

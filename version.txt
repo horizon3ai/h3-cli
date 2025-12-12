@@ -1,3 +1,14 @@
+2025-11-17: November 17, 2025
+
+- Refactor install scripts for clarity.
+
+--------------------------
+2025-11-05: November, 2025
+
+Update your runners! We're enabling the ability to create auto-injected credentials from inside the H3 Portal or from the API.
+- 'cache-secret' now supports AutoInjectedCredentials secret types
+
+---------------------
 2025-09-12: September, 2025
 
 New subcommand `h3 uninstall-ad-agent {ad-agent-uuid}` for uninstalling an AD Agent on your host.

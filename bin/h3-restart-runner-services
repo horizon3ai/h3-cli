@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# usage: h3-restart-runner-services
+#
+# Restarts all systemd runner services using this h3-cli installation (same H3_CLI_HOME).
+# 
+
+# 0.
+# include common utils
+source h3-env
+
+# check if systemd is available
+if ! is_systemd_running; then 
+    echoerr "ERROR: systemd does not appear to be running on this system."
+    exit 1
+fi
+ 
+# running sudo without the -E option doesn't preserve the environment.
+if [ -z "$H3_CLI_HOME" ]; then 
+    echoerr "ERROR: H3_CLI_HOME undefined. Try without sudo, or with sudo -E"
+    exit 1
+fi
+
+service_files=`sudo ls /etc/systemd/system/`
+for file in $service_files; do
+
+    # Skip service.d (not a service)
+    if [[ $file == *"service.d" ]]; then
+        continue
+    fi
+
+    # Skip the runner that's executing this command
+    if [ -n "$H3_CLI_RUN_BY_RUNNER" ]; then 
+        runner_name_slug=`slugify "$H3_CLI_RUN_BY_RUNNER"`
+        service_name="nodezero-runner-$runner_name_slug"
+        if [[ $file == "$service_name.service" ]]; then
+            echoerr "INFO: Skipping restart of runner $file..."
+            continue
+        fi
+    fi
+
+    # Restart runner services if 
+    #  (a) they are in running state, and
+    #  (b) they are using this h3-cli installation (same H3_CLI_HOME)
+    if [[ $file == "nodezero-runner"* ]]; then
+        if sudo systemctl status "$file" | grep -q "active (running)"; then
+            if sudo cat /etc/systemd/system/"$file" | grep -q "$H3_CLI_HOME"; then
+                echoerr "INFO: Restarting runner service $file..."
+                sudo systemctl restart "$file"
+            fi
+        fi
+    fi
+done
+

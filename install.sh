@@ -1,22 +1,28 @@
 #!/bin/bash
 #
-# install script for h3-cli
+# install script for h3-cli.
 #
 # usage: bash install.sh [ {h3-api-key} [ {h3-env} ] ]
 #
-# 1. install jq
-# 1b. install yq (currently disabled)
-# 2. chmod h3-cli/bin
-# 3. create ~/.h3 profile
-# 4. update ~/.bash_profile
+# this script:
+# 1. validates env
+# 2. installs deps (jq) 
+# 3. writes the h3-cli profile to $HOME/.h3/$H3_CLI_PROFILE.env
+#       - by default H3_CLI_PROFILE="default"
+#       - if you want to install a different profile, export H3_CLI_PROFILE=<profile_name> before running this script.
 # 
 
-# writes message to stderr
-# usage: echoerr "the message"
-function echoerr { 
-    echo "$@" 1>&2;   
-}
+# x.
+# verify this script is being run from the h3-cli dir.
+H3_CLI_HOME=`pwd`
+if [ -z "$H3_CLI_HOME" -o ! -e "$H3_CLI_HOME/bin/h3-env" ]; then 
+    echo "ERROR: This script must be run from the h3-cli root directory." 1>&2
+    exit 1
+fi
 
+# x.
+# load utils
+source $H3_CLI_HOME/bin/h3-utils
 
 # uname examples:
 # mac M1:   Darwin MacBook-Pro.local 20.1.0 Darwin Kernel Version 20.1.0: Sat Oct 31 00:07:10 PDT 2020; root:xnu-7195.50.7~2/RELEASE_ARM64_T8101 arm64
@@ -43,7 +49,7 @@ function get_system_type {
     fi
 }
 
- 
+# pick the jq download URL based on system type
 function pick_jq_url {
     system_type=`get_system_type`
     u=`uname -a`
@@ -62,6 +68,7 @@ function pick_jq_url {
     fi
 }
 
+# pick the jq download URL based on system type, via NG
 function pick_jq_url_ng {
     system_type=`get_system_type`
     u=`uname -a`
@@ -80,226 +87,168 @@ function pick_jq_url_ng {
     fi
 }
 
-# TODO: improve system identification
-function pick_yq_url {
-    system_type=`get_system_type`
-    u=`uname -a`
-    if [ "$system_type" = "LINUX_64" ]; then
-        echo "https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_linux_amd64"
-        return 0
-    elif [ "$system_type" = "LINUX_32" ]; then
-        echo "https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_linux_amd64"
-        return 0
-    elif [ "$system_type" = "MACOS_64" ]; then
-        echo "https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_darwin_amd64"
-        return 0
-    else 
-        echo "https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_darwin_amd64"
-        return 0
+# install jq if not already installed
+function install_jq {
+    echo 
+    echo "[.] Checking if jq is already installed ..."
+    jqv=`jq --version 2>&1`
+    if [ $? -ne 0 ]; then
+        # if H3_CLI_DOWNLOAD_URL is set, we use the ng for jq, else we use the default jq download URL.
+        if [ -z "$H3_CLI_DOWNLOAD_URL" ]; then
+            jq_url=`pick_jq_url`
+        else
+            jq_url=`pick_jq_url_ng`
+        fi
+        echo "[.] Installing jq from $jq_url ... "
+        curl -s -L $jq_url -o $H3_CLI_HOME/bin/jq
+        chmod -R a+x $H3_CLI_HOME/bin &>/dev/null
+
+        rc=$?
+        if [ $rc -ne 0 ]; then
+            echoerr "chmod jq failed, trying with sudo..."
+            sudo chmod -R a+x $H3_CLI_HOME/bin
+        fi
+    
+        # verify
+        echo "[.] Verifying $H3_CLI_HOME/bin/jq ... "
+        jqv=`$H3_CLI_HOME/bin/jq --version`
+        if [ $? -ne 0 ]; then
+            rm -f $H3_CLI_HOME/bin/jq   # cleanup
+            echo "[!] ACTION REQUIRED: failed to install jq"
+            echo "[!] Please install jq from https://stedolan.github.io/jq/download/"
+            echo "[!] After installing jq, re-run this install script"
+            exit 1
+        fi
+    fi
+    echo "[.] DONE"
+}
+
+# update H3_AUTH_URL and H3_GQL_URL based on h3_env input parm.
+# if h3_env defined, use it.
+# otherwise fallback to existing H3_AUTH_URL and H3_GQL_URL values (if any were 
+# already sourced from the profile).
+function set_auth_urls {
+    h3_env=$1
+    if [ -z "$h3_env" ]; then
+        return
+
+    # if the env starts with https://api, then assume it's a URL and set the H3_AUTH_URL and H3_GQL_URL accordingly.
+    elif [[ "$h3_env" == "https://api"* ]]; then
+        clean_h3_env="${h3_env%/}"  # remove trailing slash if any
+        H3_AUTH_URL="$clean_h3_env/v1/auth"
+        H3_GQL_URL="$clean_h3_env/v1/graphql"
+
+    # A non-empty h3_env was provided, try one of the predefined environments.
+    else
+        case $h3_env in
+            "prod")
+                H3_AUTH_URL="https://api.horizon3ai.com/v1/auth"
+                H3_GQL_URL="https://api.horizon3ai.com/v1/graphql"
+                ;;
+            "prod_eu")
+                H3_AUTH_URL="https://api.horizon3ai.eu/v1/auth"
+                H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
+                ;;
+            "fh-prod")
+                H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
+                H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+                ;;
+            "us")
+                H3_AUTH_URL="https://api.gateway.horizon3ai.com/v1/auth"
+                H3_GQL_URL="https://api.gateway.horizon3ai.com/v1/graphql"
+                ;;
+            "eu")
+                H3_AUTH_URL="https://api.gateway.horizon3ai.eu/v1/auth"
+                H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
+                ;;
+            "fed-fh")
+                H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
+                H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+                ;;
+            "fed-h3")
+                return
+                ;;
+        esac
     fi
 }
 
-
-# 0.
-# verify this script is being run from the h3-cli dir.
-H3_CLI_HOME=`pwd`
-
-if [ -z "$H3_CLI_HOME" -o ! -e "$H3_CLI_HOME/bin/h3-env" ]; then 
-    echoerr "ERROR: This script must be run from the h3-cli root directory."
-    exit 1
-fi
-
-if [ -z "$HOME" -o ! -e "$HOME" ]; then 
-    echoerr "ERROR: This script requires the HOME environent variable to be set to the user's home directory."
-    exit 1
-fi
-
-# chmod executable
-chmod -R a+x $H3_CLI_HOME/bin &>/dev/null
-rc=$?
-if [ $rc -ne 0 ]; then
-    echoerr "chmod executables failed, trying with sudo..."
-    sudo chmod -R a+x $H3_CLI_HOME/bin
-fi
-
-# if H3_CLI_DOWNLOAD_URL is set, we use the ng for jq, else we use the default jq download URL.
-config_file="$HOME/.h3/__global__.env"
-if [ -e "$config_file" ]; then
-    source "$config_file"
-fi
-
-# 1.
-# install jq 
-echo 
-echo "[.] Checking if jq is already installed ..."
-jqv=`jq --version 2>&1`
-if [ $? -ne 0 ]; then
-    if [ -z "$H3_CLI_DOWNLOAD_URL" ]; then
-        jq_url=`pick_jq_url`
-    else
-        jq_url=`pick_jq_url_ng`
-    fi
-    echo "[.] Installing jq from $jq_url ... "
-    curl -s -L $jq_url -o $H3_CLI_HOME/bin/jq
+# ensure the bin dir scripts are executable
+function chmod_bin_dir {
     chmod -R a+x $H3_CLI_HOME/bin &>/dev/null
-
     rc=$?
     if [ $rc -ne 0 ]; then
-        echoerr "chmod jq failed, trying with sudo..."
+        echoerr "chmod executables failed, trying with sudo..."
         sudo chmod -R a+x $H3_CLI_HOME/bin
     fi
-   
-    # verify
-    echo "[.] Verifying $H3_CLI_HOME/bin/jq ... "
-    jqv=`$H3_CLI_HOME/bin/jq --version`
-    if [ $? -ne 0 ]; then
-        rm -f $H3_CLI_HOME/bin/jq   # cleanup
-        echo "[!] ACTION REQUIRED: failed to install jq"
-        echo "[!] Please install jq from https://stedolan.github.io/jq/download/"
-        echo "[!] After installing jq, re-run this install script"
-        exit 1
-    fi
-fi
-echo "[.] DONE"
+}
 
-# 1b. 
-# install yq
-# echo "[.] Checking if yq is already installed ..."
-# yqv=`jy --version 2>&1`
-# if [ $? -ne 0 ]; then
-#     yq_url=`pick_yq_url`
-#     echo "[.] Installing yq from $yq_url ... "
-#     curl -s -L $yq_url -o $H3_CLI_HOME/bin/yq
-#     chmod -R a+x $H3_CLI_HOME/bin
-#    
-#     # verify
-#     echo "[.] Verifying $H3_CLI_HOME/bin/yq ... "
-#     yqv=`$H3_CLI_HOME/bin/yq --version`
-#     if [ $? -ne 0 ]; then
-#         rm -f $H3_CLI_HOME/bin/yq   # cleanup
-#         echo "[!] ACTION REQUIRED: failed to install yq"
-#         echo "[!] Please install yq from https://github.com/mikefarah/yq/#install"
-#         echo "[!] After installing yq, re-run this install script"
-#         exit 1
-#     fi
-# fi
-# echo "[.] DONE"
+# x.
+# chmod h3-cli/bin
+chmod_bin_dir
 
+# x.
+# verify this script is being run from the h3-cli dir.
+ensure_H3_CLI_PROFILES_DIR
 
-# 2. 
-# create .h3 profile.
-# allow no API key to be specified.  in which case, we'll check if the {profile}.env already exists, and if it doesn't, 
-# we'll create it and prompt the user to populate it. 
-echo 
-API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with h3-env.
-H3_API_KEY=$1
-if [ -z "$H3_API_KEY" ]; then
-    H3_API_KEY=$API_KEY_UNSPECIFIED
-fi
+# x.
+# source global profile
+global_file="$H3_CLI_PROFILES_DIR/__global__.env"
+ensure_profile "$global_file"
+source "$global_file"
 
-# determine GQL and AUTH endpoints
-h3_env=$2
-if [ -z "$h3_env" ]; then
-    H3_AUTH_URL=""
-    H3_GQL_URL=""
-
-# if the env starts with https://api, then assume it's a URL and set the H3_AUTH_URL and H3_GQL_URL accordingly.
-elif [[ "$h3_env" == "https://api"* ]]; then
-    clean_h3_env="${h3_env%/}"  # remove trailing slash if any
-    H3_AUTH_URL="$clean_h3_env/v1/auth"
-    H3_GQL_URL="$clean_h3_env/v1/graphql"
-
-# A non-empty h3_env was provided, try one of the predefined environments.
-else
-    case $h3_env in
-        "prod")
-            H3_AUTH_URL="https://api.horizon3ai.com/v1/auth"
-            H3_GQL_URL="https://api.horizon3ai.com/v1/graphql"
-            ;;
-        "prod_eu")
-            H3_AUTH_URL="https://api.horizon3ai.eu/v1/auth"
-            H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
-            ;;
-        "fh-prod")
-            H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
-            H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
-            ;;
-        "us")
-            H3_AUTH_URL="https://api.gateway.horizon3ai.com/v1/auth"
-            H3_GQL_URL="https://api.gateway.horizon3ai.com/v1/graphql"
-            ;;
-        "eu")
-            H3_AUTH_URL="https://api.gateway.horizon3ai.eu/v1/auth"
-            H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
-            ;;
-        "fed-fh")
-            H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
-            H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
-            ;;
-        "fed-h3")
-            H3_AUTH_URL=""
-            H3_GQL_URL=""
-            ;;
-    esac
-fi
-
+# x.
+# source H3_CLI_PROFILE, if exists
+# this may populate H3_API_KEY, H3_AUTH_URL, H3_GQL_URL, H3_CLI_DOWNLOAD_URL, etc,
+# which we'll use if they are not overridden by input parms.
 # if H3_CLI_PROFILE is already set, use it, otherwise set to "default".
 if [ -z "$H3_CLI_PROFILE" ]; then
     H3_CLI_PROFILE="default"
 fi
+profile_file="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+ensure_profile "$profile_file"
+source "$profile_file"
 
-# if ~/.h3/{profile}.env does not exist, create it and populate it with H3_API_KEY.
-profile_file="$HOME/.h3/$H3_CLI_PROFILE.env"
-if [ ! -e "$profile_file" ]; then
-    echo "[.] Creating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
-    mkdir -p $HOME/.h3
-    cat <<HERE > "$profile_file"
-H3_API_KEY=$H3_API_KEY
-HERE
-    # add GQL and AUTH endpoints if they were provided
-    if [ -n "$H3_AUTH_URL" ]; then
-        echo "H3_AUTH_URL=$H3_AUTH_URL" >> "$profile_file"
-    fi
-    if [ -n "$H3_GQL_URL" ]; then
-        echo "H3_GQL_URL=$H3_GQL_URL" >> "$profile_file"
-    fi
+# x.
+# install jq 
+install_jq
 
-    chmod -R 700 $HOME/.h3
-
-# if ~/.h3/{profile}.env does exist, AND an api key AND h3_env was provided, then update the profile.
-elif [ "$H3_API_KEY" != "$API_KEY_UNSPECIFIED" ] && [ "$H3_AUTH_URL" ]; then
-    echo "[.] Updating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
-    mv "$profile_file" "$profile_file.bak"
-    cat "$profile_file.bak" | \
-      sed -e "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/" | grep -v "H3_AUTH_URL\|H3_GQL_URL" > "$profile_file"
-    # add/update GQL and AUTH endpoints if they were provided
-    if [ -n "$H3_AUTH_URL" ]; then
-        echo "H3_AUTH_URL=$H3_AUTH_URL" >> "$profile_file"
-    fi
-    if [ -n "$H3_GQL_URL" ]; then
-        echo "H3_GQL_URL=$H3_GQL_URL" >> "$profile_file"
-    fi
-
-# if ~/.h3/{profile}.env does exist, AND an api key was provided, but no h3_env was provided, then update the profile.
-elif [ "$H3_API_KEY" != "$API_KEY_UNSPECIFIED" ]; then
-    echo "[.] Updating h3-cli profile [$H3_CLI_PROFILE] under $HOME/.h3 ..."
-    mv "$profile_file" "$profile_file.bak"
-    cat "$profile_file.bak" | \
-      sed -e "s/H3_API_KEY=.*/H3_API_KEY=$H3_API_KEY/"  > "$profile_file"
-
-
-# the profile exists, and H3_API_KEY was not provided.
-# read it in so H3_API_KEY gets set.  
-# down below we check if it's set to API_KEY_UNSPECIFIED and prompt the user to set it.
-else
-    echo "[.] h3-cli profile [$H3_CLI_PROFILE] already defined under $HOME/.h3 "
-    source "$profile_file"
+# x. 
+# determine H3_API_KEY.
+# if provided as input parm, use that.
+# if not provided as input parm, AND it's not already set in the profile, then
+# set it to H3_API_KEY=your-api-key-here, which is a placeholder we check for and 
+# prompt the user to set later.
+API_KEY_UNSPECIFIED="your-api-key-here"     # NOTE: keep in sync with h3-env.
+h3_api_key=$1
+if [ -n "$h3_api_key" ]; then
+    H3_API_KEY="$h3_api_key"
+elif [ -z "$H3_API_KEY" ]; then
+    H3_API_KEY=$API_KEY_UNSPECIFIED
 fi
 
+# x.
+# determine GQL and AUTH endpoints
+# if they are specified on the command line, use those.
+# otherwise we'll use what's already in the profile (if any).
+h3_env=$2
+set_auth_urls "$h3_env"
+
+# x.
+# update the profile
+echo
+echo "[.] Saving h3-cli profile [$H3_CLI_PROFILE] to $profile_file ..."
+backup_profile "$profile_file"
+upsert_profile_var "$profile_file" "H3_API_KEY" "$H3_API_KEY"
+upsert_profile_var "$profile_file" "H3_AUTH_URL" "$H3_AUTH_URL"
+upsert_profile_var "$profile_file" "H3_GQL_URL" "$H3_GQL_URL"
+upsert_profile_var "$profile_file" "H3_CLI_DOWNLOAD_URL" "$H3_CLI_DOWNLOAD_URL"
+
+# x.
 # delete existing cached jwt, if any
-jwt_file="$HOME/.h3/$H3_CLI_PROFILE.jwt"
+jwt_file="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.jwt"
 rm -f "$jwt_file"
 
+# x.
 # prompt the user if no API key was specified
 if [ "$H3_API_KEY" = "$API_KEY_UNSPECIFIED" ]; then
     cat <<HERE
@@ -314,9 +263,8 @@ else
     echo "[.] DONE"
 fi
 
-
-# 3. 
-# profile updates
+# x. 
+# prompt user to update bash profile 
 bash_profile=$HOME/.bash_profile
 if [ ! -e "$bash_profile" ]; then 
     bash_profile=$HOME/.bash_login

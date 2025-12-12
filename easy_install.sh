@@ -126,6 +126,11 @@ function via_unzip_ng {
 function download_h3_cli {
     echoerr "INFO: Downloading h3-cli into $H3_CLI_HOME ..."
 
+    if [ -n "$H3_CLI_SKIP_DOWNLOAD" ]; then
+        echoerr "WARN: Skipping h3-cli download due to H3_CLI_SKIP_DOWNLOAD=$H3_CLI_SKIP_DOWNLOAD"
+        return 0
+    fi
+
     if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
         echoerr "INFO: Attempting to download h3-cli via NodeZero Gateway (NG) into $H3_CLI_HOME ..."
 
@@ -172,8 +177,104 @@ function download_h3_cli {
         sudo cp -R "$tmp_d/." "$H3_CLI_HOME"
     fi
 
-    # clean up tmp dir
+    # clean up tmp dir (cd out of it first)
+    cd "$H3_CLI_HOME"
     rm -Rf "$install_tmp_basedir"
+}
+
+# create empty profile if it does not exist
+function ensure_profile {
+    profile_file="$1"
+    if [ ! -e "$profile_file" ]; then
+        profile_dir=`dirname "$profile_file"`
+        mkdir -p "$profile_dir"
+        touch "$profile_file"
+        chmod -R 700 "$profile_dir"
+    fi
+}
+
+# add var_name=var_value to profile, or update if it already exists
+# note: dup'ed in easy_install.sh
+function upsert_profile_var {
+    profile_file="$1"
+    var_name="$2"
+    var_value="$3"
+    if [ -z "$var_value" ]; then
+        return
+    fi
+    # make backup, remove old setting, add new setting
+    mv "$profile_file" "$profile_file.tmp"
+    cat "$profile_file.tmp" | grep -v "$var_name=" > "$profile_file"
+    echo "$var_name=$var_value" >> "$profile_file"
+    rm -f "$profile_file.tmp"
+}
+
+# check if necessary programs are installed
+function check_deps {
+    # Library checks for using NodeZero Gateway (NG) for h3-cli installation
+    if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
+
+        # Only .zip is supported for the NG
+        if ! command -v unzip &> /dev/null; then
+            echoerr "ERROR: h3-cli requires unzip to download."
+            exit 1
+        fi
+
+    # Library checks for using GitHub for h3-cli installation
+    else
+        if ! command -v git &> /dev/null; then
+            if ! command -v unzip &> /dev/null; then
+                if ! command -v tar &> /dev/null; then
+                    echoerr "ERROR: h3-cli requires git, unzip or tar to download."
+                    exit 1
+                fi
+            fi
+        fi
+    fi
+}
+
+# ensure H3_CLI_HOME is set.
+function ensure_h3_cli_home {
+    if [ -z "$H3_CLI_HOME" ]; then
+        path_to_h3=`which h3`
+        if [ -n "$path_to_h3" ]; then
+            H3_CLI_HOME=`dirname $(dirname "$path_to_h3")`
+        fi
+        if [ -z "$H3_CLI_HOME" ]; then
+            H3_CLI_HOME="`pwd`/h3-cli"
+        fi
+    fi
+    # ensure abs path
+    if [[ "$H3_CLI_HOME" != "/"* ]]; then
+        H3_CLI_HOME="$(cd "$(dirname "$H3_CLI_HOME")"; pwd)/$(basename "$H3_CLI_HOME")"
+    fi
+    mkdir -p "$H3_CLI_HOME"
+}
+
+function start_runner {
+    runner_name="$1"
+    if [ -z "$runner_name" ]; then 
+        echolog "DEBUG: runner_name not provided, will not start a NodeZero Runner"
+        exit 0
+    fi
+    h3 start-runner-service "$runner_name" 
+    rc=$?
+    if [ $rc -ne 0 ]; then 
+        echoerr "INFO: Failed to start the NodeZero Runner as a systemd service."
+        echoerr "      Starting the NodeZero Runner as a standalone background process instead ..."
+        h3 start-runner "$runner_name" 
+    fi
+}
+
+function ensure_H3_CLI_PROFILES_DIR {
+    if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+        # check $HOME is defined and exists
+        if [ -z "$HOME" -o ! -e "$HOME" ]; then 
+            echoerr "ERROR: This script requires the HOME environent variable to be set to the user's home directory."
+            exit 1
+        fi
+        H3_CLI_PROFILES_DIR="$HOME/.h3"
+    fi
 }
 
 echoerr "INFO: Installing h3-cli ..."
@@ -182,84 +283,40 @@ runner_name=$2
 h3_env=$3
 h3_download_url=$4
 
-# 0.
-# check deps
-if [ -z "$HOME" -o ! -e "$HOME" ]; then 
-    echoerr "ERROR: This script requires the HOME environent variable to be set to the user's home directory."
-    exit 1
+# x.
+# ensure H3_CLI_PROFILES_DIR is set 
+ensure_H3_CLI_PROFILES_DIR
+
+# x.
+# ensure global config file exists and update H3_CLI_DOWNLOAD_URL if provided
+global_file="$H3_CLI_PROFILES_DIR/__global__.env"
+ensure_profile "$global_file"
+upsert_profile_var "$global_file" "H3_CLI_DOWNLOAD_URL" "$h3_download_url"
+source "$global_file"
+
+# x.
+# ensure profile exists and update H3_CLI_DOWNLOAD_URL if provided
+if [ -z "$H3_CLI_PROFILE" ]; then
+    H3_CLI_PROFILE="default"
 fi
+profile_file="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+ensure_profile "$profile_file"
+upsert_profile_var "$profile_file" "H3_CLI_DOWNLOAD_URL" "$h3_download_url"
+source "$profile_file"
 
+# x.
+# Check that dependencies are installed
+check_deps
 
-config_file="$HOME/.h3/__global__.env"
-# Determine if we should use NodeZero Gateway (NG) or GitHub for downloading
-# config_file does not exist, create and write the setting if h3_download_url is provided
-if [ ! -e "$config_file" ]; then
-
-    # Write h3_download_url to config file
-    if [ -n "$h3_download_url" ]; then
-
-        if [ ! -e "$HOME/.h3/" ]; then
-            echoerr "INFO: Creating directory $HOME/.h3/"
-            mkdir -p "$HOME/.h3/"
-        fi
-
-        H3_CLI_DOWNLOAD_URL=$h3_download_url
-        echo "H3_CLI_DOWNLOAD_URL=$H3_CLI_DOWNLOAD_URL" > "$config_file"
-    fi
-    # Dont create the file if h3_download_url is not provided
-
-# config_file exists, source the file
-else
-    source "$config_file"
-
-    # h3_download_url is provided, overwrite the setting and set it in the config file
-    if [ -n "$h3_download_url" ]; then
-        H3_CLI_DOWNLOAD_URL=$h3_download_url
-        echo "H3_CLI_DOWNLOAD_URL=$H3_CLI_DOWNLOAD_URL" > "$config_file"
-    fi
-fi
-
-# Library checks for using NodeZero Gateway (NG) for h3-cli installation
-if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
-
-    # Only .zip is supported for the NG
-    if ! command -v unzip &> /dev/null; then
-        echoerr "ERROR: h3-cli requires unzip to download."
-        exit 1
-    fi
-
-# Library checks for using GitHub for h3-cli installation
-else
-    if ! command -v git &> /dev/null; then
-        if ! command -v unzip &> /dev/null; then
-            if ! command -v tar &> /dev/null; then
-                echoerr "ERROR: h3-cli requires git, unzip or tar to download."
-                exit 1
-            fi
-        fi
-    fi
-fi
-
-# 1.
+# x.
 # determine H3_CLI_HOME, where h3-cli will be downloaded/upgraded.
-if [ -z "$H3_CLI_HOME" ]; then
-    path_to_h3=`which h3`
-    if [ -n "$path_to_h3" ]; then
-        H3_CLI_HOME=`dirname $(dirname "$path_to_h3")`
-    fi
-    if [ -z "$H3_CLI_HOME" ]; then
-        H3_CLI_HOME="`pwd`/h3-cli"
-    fi
-fi
-mkdir -p "$H3_CLI_HOME"
+ensure_h3_cli_home
 
-
-# 2.
+# x.
 # download/upgrade h3-cli
 download_h3_cli
 
-
-# 3.
+# x.
 # run bash install.sh
 cd "$H3_CLI_HOME"
 echoerr "INFO: Running h3-cli install.sh in `pwd` ..."
@@ -273,38 +330,13 @@ export PATH="$H3_CLI_HOME/bin:$PATH"
 echoerr "INFO: h3-cli installation complete. h3 version:"
 h3 version
 
-# 4.
-# Restart existing runners using the upgraded CLI (if any)
-if is_systemd_running; then
-    service_files=`sudo ls /etc/systemd/system/`
-    for file in $service_files; do
-        # Skip service.d file, not a service
-        if [[ $file == "nodezero-runner"*  && $file != *"service.d" ]]; then
+# x.
+# Restart existing runners 
+h3 restart-runner-services
 
-            # Only restart services that are already running and using the upgraded h3-cli
-            if sudo systemctl status "$file" | grep -q "active (running)"; then
-                if sudo cat /etc/systemd/system/"$file" | grep -q "$H3_CLI_HOME"; then
-                    echoerr "INFO: Restarting runner service $file..."
-                    sudo systemctl restart "$file"
-                fi
-            fi
-        fi
-    done
-fi
-
-# 5.
+# x.
 # start runner (if specified)
-if [ -z "$runner_name" ]; then 
-    echolog "DEBUG: runner_name not provided, will not start a NodeZero Runner"
-    exit 0
-fi
-h3 start-runner-service "$runner_name" 
-rc=$?
-if [ $rc -ne 0 ]; then 
-    echoerr "INFO: Failed to start the NodeZero Runner as a systemd service."
-    echoerr "      Starting the NodeZero Runner as a standalone background process instead ..."
-    h3 start-runner "$runner_name" 
-fi
+start_runner "$runner_name"
 
 echoerr "INFO: NodeZero Runner installation complete."
 

@@ -150,8 +150,8 @@ function set_auth_urls {
                 H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
                 ;;
             "fh-prod")
-                H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
-                H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+                H3_AUTH_URL="https://api.gateway.gov-horizon3ai.com/v1/auth"
+                H3_GQL_URL="https://api.gateway.gov-horizon3ai.com/v1/graphql"
                 ;;
             "us")
                 H3_AUTH_URL="https://api.gateway.horizon3ai.com/v1/auth"
@@ -162,8 +162,8 @@ function set_auth_urls {
                 H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
                 ;;
             "fed-fh")
-                H3_AUTH_URL="https://api.gov-horizon3ai.com/v1/auth"
-                H3_GQL_URL="https://api.gov-horizon3ai.com/v1/graphql"
+                H3_AUTH_URL="https://api.gateway.gov-horizon3ai.com/v1/auth"
+                H3_GQL_URL="https://api.gateway.gov-horizon3ai.com/v1/graphql"
                 ;;
             "fed-h3")
                 return

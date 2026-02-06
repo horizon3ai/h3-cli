@@ -25,6 +25,8 @@ of your environment or kicking off a pentest as part of a continuous integration
 The steps below will get you up and running quickly with h3-cli. These instructions were tested on 
 macOS and Linux machines, and generally should work on any [POSIX-compliant](https://en.wikipedia.org/wiki/POSIX) system with bash support.
 
+For Windows users, please see the [Windows Installation](#windows-installation) section.
+
 If you plan to run _internal_ pentests using h3-cli, you should install h3-cli on the same Docker Host
 where you launch NodeZero.
 
@@ -95,6 +97,39 @@ h3
 ```
 
 If everything's installed correctly, you should see the h3-cli help text.
+
+
+## Windows Installation
+
+**Prerequisites:**
+- [Git for Windows](https://git-scm.com/download/win) (Git Bash)
+- PowerShell 5.1 or later
+
+### 1. Download and Install
+
+Open PowerShell and run the following commands:
+
+```powershell
+# Clone the repository
+git clone https://github.com/horizon3ai/h3-cli
+cd h3-cli
+
+# Run the installer
+.\easy_install.ps1 -ApiKey "your-api-key-here"
+```
+
+The installer will:
+1. Download `jq` for Windows.
+2. Create your h3-cli profile in `~/.h3`.
+3. Add `h3-cli/bin` to your User PATH.
+
+### 2. Verify Installation
+
+Restart your PowerShell terminal to ensure the PATH changes take effect, then run:
+
+```powershell
+h3 version
+```
 
 
 ## Upgrading h3-cli

@@ -51,8 +51,21 @@ rc=$?
 if [ $rc -eq 0 ]; then 
     # upload the log
     log_upload_url=`cat <<<$res | jq -r '.data.agent_command_complete.log_upload_url'`
-    run_curl -X PUT -H "Content-Type: text/plain" -T "$log_file" $log_upload_url
-    rc=$?
+    
+    # If log upload is s3.us-gov-west-1.amazonaws.com, then we need to replace the bucket with the Nodezero Gateway URL
+    fed_s3_host="s3.us-gov-west-1.amazonaws.com"
+    fed_s3_host_re=${fed_s3_host//./\\.}
+    s3_bucket=""
+    extra_header=()
+    if [[ "$log_upload_url" =~ ^https://([^.]+)\.${fed_s3_host_re}/ ]]; then
+        s3_bucket="${BASH_REMATCH[1]}"
+    fi
+    if [ -n "$s3_bucket" ]; then
+        nodezero_gateway=$(echo "$H3_GQL_URL" | sed -E 's|^https://||; s|^api\.||; s|/v1/graphql.*||')
+        log_upload_url=$(echo "$log_upload_url" | sed "s|$s3_bucket.$fed_s3_host|${nodezero_gateway}|")
+        extra_header=(-H "X-Horizon3-s3-bucket: $s3_bucket")
+    fi
+    run_curl -X PUT -H "Content-Type: text/plain" "${extra_header[@]}" -T "$log_file" "$log_upload_url"
 else 
     echo "$res"
 fi

@@ -1,3 +1,8 @@
+2026-02-19: February 19, 2026
+
+- Update h3-run-command to re-write the s3-bucket endpoint for the Federal environment
+
+--------------------------
 2025-11-17: November 17, 2025
 
 - Refactor install scripts for clarity.

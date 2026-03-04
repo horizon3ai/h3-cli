@@ -13,6 +13,9 @@
 
 source h3-env
 
+case $2 in
+    --force) force="true" ;;
+esac
 
 # 1.
 # fetch the op_id from latest-pentest if necessary
@@ -34,6 +37,12 @@ if [ -n "$H3_CLI_DOCKER_PRUNE" ]; then
 fi
 
 # 2.
+# Stop other NodeZero containers.
+if [ "$force" == "true" ]; then
+    h3 stop-nodezero
+fi
+
+# 3.
 # fetch the nodezero_script_url and run it.
 # NOTE: this GQL request will fail if the op is not in a launchable state.
 res=`h3-gql nodezero_script_url $op_id` 

@@ -1,0 +1,9 @@
+mutation uninstall_ad_agent_config($ad_agent_uuid: ID!) {
+    uninstall_ad_agent_config(ad_agent_uuid: $ad_agent_uuid) {
+        uninstall_script_url
+        gateway_redirect {
+            url
+            headers
+        }
+    }
+}

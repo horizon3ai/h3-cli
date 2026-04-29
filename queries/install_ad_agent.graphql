@@ -5,5 +5,9 @@ mutation install_ad_agent($uuid: ID!, $h3_cli_profiles_dir: String!) {
   }) {
     install_script_url
     api_key
+    gateway_redirect {
+      url
+      headers
+    }
   }
 }

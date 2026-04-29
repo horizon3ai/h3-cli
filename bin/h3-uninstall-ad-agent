@@ -17,11 +17,10 @@ if [ -z "$ad_agent_uuid" ]; then
 fi
 
 # 2.
-# Call the uninstall_ad_agent mutation
+# Call the uninstall_ad_agent_config mutation
 json_input="{\"ad_agent_uuid\":\"$ad_agent_uuid\"}"
 
-
-res=$(h3-gql uninstall_ad_agent "$json_input")
+res=$(h3-gql uninstall_ad_agent_config "$json_input")
 rc=$?
 if [ $rc -ne 0 ]; then
     echoerr "ERROR: Failed to get AD Agent uninstall instructions"
@@ -31,16 +30,31 @@ fi
 
 # 3.
 # Check the uninstallation result
-uninstall_script_url=$(echo "$res" | jq -r '.data.uninstall_ad_agent')
+uninstall_script_url=$(echo "$res" | jq -r '.data.uninstall_ad_agent_config.uninstall_script_url')
+gateway_redirect_json=`cat <<<$res | jq -c '.data.uninstall_ad_agent_config.gateway_redirect // {}'`
+parse_gateway_redirect "$gateway_redirect_json"
+download_url="$uninstall_script_url"
+if [ -n "$gateway_url" ]; then
+    download_url="$gateway_url"
+fi
 if [ -z "$uninstall_script_url" ] || [ "$uninstall_script_url" = "null" ]; then
     echoerr "ERROR: No uninstall script URL returned"
     echo $res
     exit 1
 fi
 
+# 4.
+# Download and execute the uninstallation script with the API key
 echoerr "INFO: Uninstalling AD Agent: $ad_agent_uuid"
-run_curl "$uninstall_script_url" | bash
+tmp_script=$(mktemp)
+run_curl "${extra_header[@]}" -o "$tmp_script" "$download_url"
+if grep -q '<Error>' "$tmp_script" && [ -n "$gateway_url" ]; then
+    echoerr "WARN: gateway download failed, retrying with original url ..."
+    run_curl -o "$tmp_script" "$uninstall_script_url"
+fi
+bash "$tmp_script"
 uninstall_rc=$?
+rm -f "$tmp_script"
 
 if [ $uninstall_rc -eq 0 ]; then
     echoerr "INFO: AD Agent uninstalled successfully"

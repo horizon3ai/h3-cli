@@ -370,3 +370,19 @@ function upsert_profile_var {
     echo "$var_name=$var_value" >> "$profile_file"
     rm -f "$profile_file.tmp"
 }
+
+
+# Parse a gateway_redirect object and set gateway_url and extra_header globals.
+# usage: parse_gateway_redirect "$gateway_redirect_json"
+function parse_gateway_redirect {
+    local gateway_redirect_json="$1"
+    gateway_url=$(cat <<<$gateway_redirect_json | jq -r '.url // empty')
+    extra_header=()
+    if [ -n "$gateway_url" ]; then
+        while IFS=$'\t' read -r header_key header_value; do
+            if [ -n "$header_key" ] && [ -n "$header_value" ]; then
+                extra_header+=(-H "$header_key: $header_value")
+            fi
+        done < <(cat <<<$gateway_redirect_json | jq -r '.headers // {} | to_entries[]? | [.key, .value] | @tsv')
+    fi
+}

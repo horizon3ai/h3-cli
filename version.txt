@@ -1,3 +1,9 @@
+2026-04-29: April 29, 2026
+
+- Fix auth logic gate for non-json response
+- Add support for `gateway_redirect` in `install-ad-agent`, `uninstall-ad-agent`, and `run-command` to route requests through the NodeZero Gateway when available
+
+--------------------------
 2026-03-04: March 04, 2026
 
 - New subcommand `h3 stop-nodezero` for stopping all `NodeZero` docker containers on host.

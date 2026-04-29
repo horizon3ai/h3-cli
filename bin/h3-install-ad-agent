@@ -36,6 +36,12 @@ fi
 # Extract the install_script_url and api_key from the response
 install_script_url=$(echo "$res" | jq -r '.data.install_ad_agent.install_script_url')
 api_key=$(echo "$res" | jq -r '.data.install_ad_agent.api_key')
+gateway_redirect_json=`cat <<<$res | jq -c '.data.install_ad_agent.gateway_redirect // {}'`
+parse_gateway_redirect "$gateway_redirect_json"
+download_url="$install_script_url"
+if [ -n "$gateway_url" ]; then
+    download_url="$gateway_url"
+fi
 
 if [ -z "$install_script_url" ] || [ "$install_script_url" = "null" ]; then
     echoerr "ERROR: No installation script URL returned"
@@ -52,8 +58,15 @@ fi
 # 4.
 # Download and execute the installation script with the API key
 echoerr "INFO: Installing AD Agent with UUID: $ad_agent_uuid"
-run_curl "$install_script_url" | bash -s "$api_key"
+tmp_script=$(mktemp)
+run_curl "${extra_header[@]}" -o "$tmp_script" "$download_url"
+if grep -q '<Error>' "$tmp_script" && [ -n "$gateway_url" ]; then
+    echoerr "WARN: gateway download failed, retrying with original url ..."
+    run_curl -o "$tmp_script" "$install_script_url"
+fi
+bash "$tmp_script" "$api_key"
 install_rc=$?
+rm -f "$tmp_script"
 
 if [ $install_rc -eq 0 ]; then
     echoerr "INFO: AD Agent installation completed successfully"

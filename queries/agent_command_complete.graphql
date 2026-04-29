@@ -4,6 +4,10 @@ mutation m($input:AgentCommandCompleteInput!) {
             ...AgentCommandFragment
         }
         log_upload_url
+        gateway_redirect {
+            url
+            headers
+        }
     }
 }
   

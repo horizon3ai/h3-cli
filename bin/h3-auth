@@ -42,7 +42,7 @@ function refresh_jwt_fallback_eu {
         refresh_jwt
         rc=$?
         if [ $rc -ne 0 ]; then
-            echoerr "ERROR: Authentication Failed. For more details, enable verbose logging (export H3_CLI_VERBOSE=1) and retry." 
+            echoerr "ERROR: Authentication Failed. For more details, enable verbose logging (export H3_CLI_VERBOSE=1) and retry."
             return $rc
         fi
         # save eu URLs in profile
@@ -71,8 +71,9 @@ function refresh_jwt {
         return $rc
     fi 
     # check if we didn't get a token back
+    # also handles non-JSON responses (e.g. HTML from WAF/proxy) where jq outputs empty string
     token=`cat <<<$res | jq -r .token`
-    if [ "$token" = "null" ]; then
+    if [ "$token" = "null" ] || [ -z "$token" ]; then
         echolog "ERROR: " $res
         H3_API_JWT=""
         echo $H3_API_JWT > "$jwt_file"

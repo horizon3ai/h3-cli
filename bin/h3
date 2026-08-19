@@ -22,7 +22,7 @@ bootstrap_path
 # writes message to stderr
 # usage: echoerr "the message"
 function echoerr { 
-    echo "[`date`] $@" 1>&2;   
+    echo "[`date`] $*" 1>&2;
 }
  
 
@@ -30,7 +30,7 @@ function echoerr {
 # usage: echolog "the message"
 function echolog { 
     if [ "$verbose" = "x" ]; then
-        echo "[`date`] $@" 1>&2;   
+        echo "[`date`] $*" 1>&2;
     fi
 }
 
@@ -107,6 +107,19 @@ h3 delete-runner {name}             # Delete the Runner with the given {name}.  
                                     # If a deleted Runner is still running, it will be recreated upon the next heartbeat.
 h3 run-nodezero-on-runner {op_id} {runner_name}
                                     # Run NodeZero for the given {op_id} on the Runner with the given {runner_name}.
+
+
+-----------
+Containers:
+
+h3 run-container {uuid}             # Fetch the container run spec for {uuid} and launch it detached as h3-{uuid}.
+                                    # Normally run by a NodeZero Runner in response to a queued command.
+h3 post-container-results           # Report the results of finished h3-{uuid} containers to the API.
+                                    # Runs automatically on each Runner poll cycle; no need to invoke it by hand.
+h3 ps-container                     # Show all H3-managed containers (h3-/n0 prefixes), running or exited.
+h3 log-container {uuid} [{opts}]    # Show logs for container h3-{uuid} (pass -f/--tail N as {opts}).
+h3 stop-container {uuid}            # Stop container h3-{uuid}.
+h3 rm-container {uuid}              # Remove container h3-{uuid}.  Stop it first if it is still running.
 
 
 ------------------
@@ -332,6 +345,7 @@ function cmd_env {
     source h3-utils
     ensure_H3_CLI_PROFILES_DIR
     ensure_H3_CLI_LOGGING_DIR
+    ensure_H3_CLI_RUN_CONTAINER_OUTPUT_DIR
     ensure_H3_API_KEY
     ensure_H3_CLI_HOME
     ensure_H3_AUTH_URL
@@ -348,15 +362,17 @@ function cmd_env {
     if [ -n "$H3_CLI_PROXY_URL" ]; then 
         echo "H3_CLI_PROXY_URL=$H3_CLI_PROXY_URL" 
     fi
-    echo "H3_CLI_LOGGING_DIR=$H3_CLI_LOGGING_DIR" 
+    echo "H3_CLI_LOGGING_DIR=$H3_CLI_LOGGING_DIR"
+    echo "H3_CLI_RUN_CONTAINER_OUTPUT_DIR=$H3_CLI_RUN_CONTAINER_OUTPUT_DIR"
 }
 
 
 function cmd_profiles {
     source h3-utils
     assert_H3_CLI_PROFILES_DIR
-    for x in `ls $H3_CLI_PROFILES_DIR/*.env`; do 
-        basename $x | sed 's/[.]env$//'
+    for x in "$H3_CLI_PROFILES_DIR"/*.env; do
+        [ -e "$x" ] || continue
+        basename "$x" | sed 's/[.]env$//'
     done
 }
 
@@ -538,7 +554,10 @@ if [ -z "$cmd" -o "$cmd" = "help" ]; then
     cmd_help $*
 
 elif [ "$cmd" = "hello-world" ]; then
-    h3-gql hello_world | jq .
+    res=`h3-gql hello_world`
+    rc=$?
+    if [ $rc -eq 0 ]; then cat <<<$res | jq .
+    else echo "$res"; exit $rc; fi
 
 elif [ "$cmd" = "whoami" ]; then
     cmd_whoami
@@ -568,7 +587,7 @@ elif [ "$cmd" = "latest-pentest" ]; then
     res=`h3-gql latest_pentest $*`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.pentests_page.pentests[]'
-    else echo "$res"; fi
+    else echo "$res"; exit $rc; fi
 
 elif [ "$cmd" = "run-pentest" -o "$cmd" = "schedule-pentest" ]; then
     cmd_create_pentest $*
@@ -628,7 +647,7 @@ elif [ "$cmd" = "agents" -o "$cmd" = "runners" ]; then
     res=`h3-gql agents`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.agents[]'
-    else echo "$res"; fi
+    else echo "$res"; exit $rc; fi
 
 elif [ "$cmd" = "agent" -o "$cmd" = "runner" ]; then
     h3-agent "$@"
@@ -649,7 +668,7 @@ elif [ "$cmd" = "schedules" ]; then
     res=`h3-gql schedules`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.schedules[]'
-    else echo "$res"; fi
+    else echo "$res"; exit $rc; fi
 
 elif [ "$cmd" = "utc" ]; then
     date -u
@@ -662,13 +681,13 @@ elif [ "$cmd" = "gql-describe" ]; then
     res=`h3-gql $*`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq
-    else echo "$res"; fi
+    else echo "$res"; exit $rc; fi
 
 elif [ "$cmd" = "auto-injected-credentials" ]; then
     res=`h3-gql auto_injected_credentials`
     rc=$?
     if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.auto_injected_credentials[]'
-    else echo "$res"; fi
+    else echo "$res"; exit $rc; fi
 
 elif [ "$cmd" = "weaknesses-stream" ]; then
     source h3-env

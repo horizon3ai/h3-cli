@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# usage: h3-ps-container
+#
+# Shows all H3-managed containers on this host -- both h3 run-container containers (h3-
+# prefix) and NodeZero containers (n0 prefix) -- running or recently exited.
+#
+
+source h3-env
+
+detect_container_runtime
+
+# NOTE: an anchored grep on the name rather than --filter name=, which is a SUBSTRING match
+# in docker (so "n0" would also match "xn0y").  grep is also the portable path across
+# docker and podman, and matches h3-stop-nodezero's idiom.
+# grep exits 1 when nothing matches; an empty list is not an error.
+$CONTAINER_RUNTIME_CMD ps -a --format '{{.Names}}	{{.Status}}	{{.Image}}' | grep -E '^(h3-|n0)' || true

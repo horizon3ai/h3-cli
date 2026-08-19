@@ -24,12 +24,12 @@
 TEMP_DIR=${TMPDIR:-/tmp}
 
 function echoerr {
-    echo "[`date`] $@" 1>&2;   
+    echo "[`date`] $*" 1>&2;
 }
 
 function echolog {
     if [ "$H3_CLI_VERBOSE" = "1" ]; then
-        echo "[`date`] $@" 1>&2;   
+        echo "[`date`] $*" 1>&2;
     fi
 }
 
@@ -100,13 +100,11 @@ function via_tar {
 
 # :returns: download dir
 function via_unzip_ng {
-    # Set default download URL
     if ! command -v unzip &> /dev/null; then
-        echoerr "ERROR: h3-cli requires unzip to download."
         return 1
     fi
     echoerr "INFO: Downloading via curl + unzip"
-    zip_url="$H3_CLI_DOWNLOAD_URL"
+    zip_url="${H3_CLI_DOWNLOAD_URL}/h3-cli.zip"
     curl -sL $zip_url -o h3-cli.zip
     rc=$?
     if [ $rc -ne 0 ]; then
@@ -117,6 +115,29 @@ function via_unzip_ng {
     rc=$?
     if [ $rc -ne 0 ]; then
         echoerr "ERROR: unzip h3-cli.zip failed"
+        exit 1
+    fi
+    echo "`pwd`/h3-cli"
+}
+
+# :returns: download dir
+function via_tar_ng {
+    if ! command -v tar &> /dev/null; then
+        return 1
+    fi
+    tar_url="${H3_CLI_DOWNLOAD_URL}/h3-cli.tar.gz"
+    echoerr "INFO: Downloading via curl + tar"
+    curl -sL "$tar_url" -o h3-cli.tar.gz
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echoerr "ERROR: curl $tar_url failed"
+        exit 1
+    fi
+    mkdir -p h3-cli
+    tar -xzf h3-cli.tar.gz -C h3-cli
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echoerr "ERROR: tar extract h3-cli.tar.gz failed"
         exit 1
     fi
     echo "`pwd`/h3-cli"
@@ -140,8 +161,12 @@ function download_h3_cli {
         tmp_d=`via_unzip_ng`
         rc=$?
         if [ $rc -ne 0 ]; then
-            echoerr "ERROR: Failed to download h3-cli. Please check that your network has a connection to $H3_CLI_DOWNLOAD_URL, and try again."
-            exit 1
+            tmp_d=`via_tar_ng`
+            rc=$?
+            if [ $rc -ne 0 ]; then
+                echoerr "ERROR: Failed to download h3-cli. Please check that your network has a connection to $H3_CLI_DOWNLOAD_URL, and try again."
+                exit 1
+            fi
         fi
 
     else
@@ -209,15 +234,26 @@ function upsert_profile_var {
     rm -f "$profile_file.tmp"
 }
 
+# Normalize H3_CLI_DOWNLOAD_URL to a base directory URL.
+# Existing installs may have the full zip URL (e.g. .../h3-cli.zip); strip the filename.
+function normalize_download_url {
+    if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
+        case "$H3_CLI_DOWNLOAD_URL" in
+            *.zip|*.tar.gz) H3_CLI_DOWNLOAD_URL=$(dirname "$H3_CLI_DOWNLOAD_URL") ;;
+        esac
+    fi
+}
+
 # check if necessary programs are installed
 function check_deps {
     # Library checks for using NodeZero Gateway (NG) for h3-cli installation
     if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
 
-        # Only .zip is supported for the NG
         if ! command -v unzip &> /dev/null; then
-            echoerr "ERROR: h3-cli requires unzip to download."
-            exit 1
+            if ! command -v tar &> /dev/null; then
+                echoerr "ERROR: h3-cli requires unzip or tar to download."
+                exit 1
+            fi
         fi
 
     # Library checks for using GitHub for h3-cli installation
@@ -303,6 +339,12 @@ profile_file="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
 ensure_profile "$profile_file"
 upsert_profile_var "$profile_file" "H3_CLI_DOWNLOAD_URL" "$h3_download_url"
 source "$profile_file"
+
+# x.
+# Normalize H3_CLI_DOWNLOAD_URL in case an older install saved the full zip URL
+normalize_download_url
+upsert_profile_var "$H3_CLI_PROFILES_DIR/__global__.env" "H3_CLI_DOWNLOAD_URL" "$H3_CLI_DOWNLOAD_URL"
+upsert_profile_var "$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env" "H3_CLI_DOWNLOAD_URL" "$H3_CLI_DOWNLOAD_URL"
 
 # x.
 # Check that dependencies are installed

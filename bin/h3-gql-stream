@@ -66,7 +66,7 @@ while [ $page_num -lt 100 ]; do
     fi
 
     # check if result is empty
-    r=`cat <<<$res | jq -r $p | jq -e '. == []'`
+    r=`cat <<<"$res" | jq -r "$p" | jq -e '. == []'`
     rc=$?
     if [ $rc -eq 0 ]; then
         echolog "array is empty; rc=$rc"
@@ -74,7 +74,7 @@ while [ $page_num -lt 100 ]; do
     fi
 
     # stream the results, loop.
-    cat <<<$res | jq -r $p[]
+    cat <<<"$res" | jq -r "${p}[]"
     page_num=$((page_num + 1))
 
 done

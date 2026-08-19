@@ -4,7 +4,7 @@
 # writes message to stderr
 # usage: echoerr "the message"
 function echoerr { 
-    echo "[`date`] $@" 1>&2;   
+    echo "[`date`] $*" 1>&2;
 }
 
 function prompterr { 
@@ -15,20 +15,24 @@ function prompterr {
 # usage: echolog "the message"
 function echolog { 
     if [ "$H3_CLI_VERBOSE" = "1" ]; then
-        echo "[`date`] $@" 1>&2;   
+        echo "[`date`] $*" 1>&2;
     fi
 }
 
+# NOTE on the three helpers below: the here-string argument is QUOTED ("$1", not $1).
+# Unquoted, a here-string still undergoes word splitting, so every one of these silently
+# collapsed runs of whitespace and turned tabs into spaces in whatever it was handed --
+# including a GraphQL variables payload on its way to the API.
 function escape_splat {
-    cat <<<$1 | sed 's/\*/\\*/g'
+    cat <<<"$1" | sed 's/\*/\\*/g'
 }
 
 function escape_quotes {
-    cat <<<$1 | sed 's/"/\\"/g'
+    cat <<<"$1" | sed 's/"/\\"/g'
 }
 
 function unescape_splat {
-    cat <<<$1 | sed 's/\\\*/*/g'
+    cat <<<"$1" | sed 's/\\\*/*/g'
 }
 
 function ensure_H3_CLI_PROFILE {
@@ -75,6 +79,25 @@ function ensure_H3_CLI_LOGGING_DIR {
     fi
     if [ -z "$H3_CLI_LOGGING_DIR" -o ! -e "$H3_CLI_LOGGING_DIR" ]; then
         H3_CLI_LOGGING_DIR="."
+    fi
+}
+
+function ensure_H3_CLI_RUN_CONTAINER_OUTPUT_DIR {
+    # where h3-run-container writes per-run container output, and where
+    # h3-post-container-results looks for it.
+    # order of precedence: H3_CLI_RUN_CONTAINER_OUTPUT_DIR, TMPDIR, /tmp
+    #
+    # NOTE: unlike H3_CLI_LOGGING_DIR, an operator-provided value is used AS-IS even if it
+    # does not exist yet -- the callers create it.  Silently falling back to /tmp because
+    # the configured directory has not been created yet would write results where
+    # h3-post-container-results does not look (or vice versa).
+    if [ -z "$H3_CLI_RUN_CONTAINER_OUTPUT_DIR" ]; then
+        local parent="$TMPDIR"
+        if [ -z "$parent" ] || [ ! -e "$parent" ]; then
+            parent="/tmp"
+        fi
+        # strip any trailing slash ($TMPDIR usually has one) so the path stays tidy
+        H3_CLI_RUN_CONTAINER_OUTPUT_DIR="${parent%/}/h3-cli/run-container-output"
     fi
 }
 
@@ -220,6 +243,30 @@ function pkill_agent {
     ps_agent
 }
 
+# Detect available container runtime (prefer docker, fallback to podman)
+# Sets CONTAINER_RUNTIME and CONTAINER_RUNTIME_CMD (with sudo if needed)
+function detect_container_runtime {
+    if command -v docker &> /dev/null; then
+        CONTAINER_RUNTIME=docker
+    elif command -v podman &> /dev/null; then
+        CONTAINER_RUNTIME=podman
+        echoerr "INFO: Docker not found. Using Podman as container runtime."
+    else
+        echoerr "ERROR: Neither Docker nor Podman found. Please install Docker or Podman."
+        exit 1
+    fi
+
+    # Podman always requires sudo for rootful execution.
+    # For Docker, check if we can talk to the daemon without sudo first.
+    if [[ "$CONTAINER_RUNTIME" == "podman" ]]; then
+        CONTAINER_RUNTIME_CMD="sudo $CONTAINER_RUNTIME"
+    elif timeout 5 $CONTAINER_RUNTIME info &>/dev/null; then
+        CONTAINER_RUNTIME_CMD="$CONTAINER_RUNTIME"
+    else
+        CONTAINER_RUNTIME_CMD="sudo $CONTAINER_RUNTIME"
+    fi
+}
+
 # converts relative path to absolute path
 # https://stackoverflow.com/a/31605674
 function abs_path {
@@ -231,6 +278,20 @@ function abs_path {
         echo "$(cd "$(dirname "$f")"; pwd)/$(basename "$f")"
     fi
 } 
+
+# $1: a file or directory path
+# returns the name of the user that owns the given path, or the empty string
+# if it cannot be determined.  Handles both GNU (-c '%U') and BSD/macOS
+# (-f '%Su') flavors of stat.
+function file_owner {
+    f=$1
+    owner=$(stat -c '%U' "$f" 2>/dev/null)
+    if [ -z "$owner" ]; then
+        # macOS stat uses different flags
+        owner=$(stat -f '%Su' "$f" 2>/dev/null)
+    fi
+    echo "$owner"
+}
 
 # trims single quotes from the input
 function trim_quotes {

@@ -57,7 +57,16 @@ function resolve_query {
 # @returns gql response (json)
 function post_query {
     echolog "posting GQL request to $H3_GQL_URL ..."
-    q=`escape_quotes "$1"`
+    # The query is interpolated into a JSON *string* below, and a raw newline inside a JSON
+    # string is invalid -- so a multi-line .graphql file must be flattened to one line.
+    #
+    # ⚠ This flattening used to happen by accident, as a side effect of the unquoted `main $*`
+    # word-splitting everything it touched.  That same expansion also silently corrupted the
+    # VARIABLES payload (collapsed whitespace runs, ate tabs, expanded globs), so it was
+    # quoted -- which means the query has to be flattened HERE, deliberately and only where
+    # it is needed.  Do not "simplify" this away: without it every multi-line query file
+    # produces an invalid request body.
+    q=`escape_quotes "$1" | tr '\n' ' '`
     v=`unescape_splat "$2"`
     echolog "q=$q"
     echolog "v=$v"
@@ -80,12 +89,17 @@ HERE
 # -------------------------------------------------------------------------
 
 
-# usage: parse_args $*
+# usage: parse_args "$@"
 # if the args are not defined, return nothing.
 # if the args contain a json document, return it directly.
 # otherwise, treat the arg as a single op_id and return it in json format.
+#
+# NOTE: "$*", not $*.  Unquoted, this re-joined the words that `main $*` had already split
+# the payload into -- which is how a space in a variables JSON "worked" at all, and also
+# what silently CORRUPTED it: runs of whitespace collapsed to one space, tabs became
+# spaces, and any standalone glob was expanded against the caller's working directory.
 function parse_args {
-    args=$*
+    args="$*"
     if [ -z "$args" ]; then
         return 
     fi
@@ -112,7 +126,7 @@ function main {
     # read the query
     read_jwt
     # -rx- q=`read_query $*`
-    q=`resolve_query $*`
+    q=`resolve_query "$1"`
     if [ -z "$q" ]; then
         echoerr "ERROR: could not resolve query $1"
         exit 1
@@ -120,7 +134,12 @@ function main {
 
     # read the vars
     shift
-    v=`parse_args $*`  # use $* otherwise doesn't handle spaces in $2
+    # NOTE: "$@", not $*.  The old comment here read "use $* otherwise doesn't handle spaces
+    # in $2" -- but that only appeared to work because `main $*` had ALREADY split the
+    # payload on whitespace and parse_args re-joined it.  A round trip through
+    # split-then-rejoin is not identity: it collapsed runs of whitespace, turned tabs into
+    # spaces, and glob-expanded a standalone `*` against the caller's working directory.
+    v=`parse_args "$@"`
 
     # run the query 
     r=`post_query "$q" "$v"`
@@ -149,7 +168,9 @@ function main {
     exit $rc
 }
 
-main $*
+# "$@", not $*: an unquoted expansion here word-split the caller's variables JSON and
+# glob-expanded it against the current directory before main ever saw it.
+main "$@"
 
 
 

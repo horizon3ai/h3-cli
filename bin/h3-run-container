@@ -1,0 +1,230 @@
+#!/bin/bash
+#
+# usage: h3-run-container {run-spec-uuid}
+#
+# Fetches the run spec for {run-spec-uuid} and launches the container detached as
+# h3-{run-spec-uuid}.  The container keeps running after this script exits; we do NOT wait,
+# poll, or interpret its result.  It writes its result to a per-run output directory that
+# h3-post-container-results collects on a later poll cycle.  Monitor with:
+# h3 ps-container / h3 log-container {run-spec-uuid}.
+#
+# {run-spec-uuid} is the run_spec uuid (the arg of the queued "run-container {uuid}" agent
+# command), NOT the uuid of whatever the spec targets; this script never opens the payload.
+#
+
+source h3-env
+
+detect_container_runtime
+
+# Where the per-run output dir is mounted inside the container, and the OUTPUT_DIR we tell
+# the container to write to.  Both halves are ours, so nothing can drift between repos.
+CONTAINER_OUTPUT_DIR="/output"
+
+# Bail out of a pre-launch failure, cleaning up the output dir we made.  There is no reaper,
+# so an empty dir left behind is walked silently by every scan for the life of the host.  The
+# rmdir is guarded on emptiness so it can never destroy a result a container actually wrote.
+# Second arg is the exit code (default 1): callers with a more specific status (curl's rc
+# distinguishes "no such host" from "404") pass it rather than flattening every failure to 1.
+function abort_launch {
+    echoerr "ERROR: $1"
+    if [ -n "${outdir:-}" ] && [ -d "$outdir" ] && [ -z "$(ls -A "$outdir" 2>/dev/null)" ]; then
+        rmdir "$outdir" 2>/dev/null
+    fi
+    exit "${2:-1}"
+}
+
+# 1. parse input
+uuid="$1"
+if [ -z "$uuid" ]; then
+    echoerr "ERROR: run-spec-uuid is required"
+    exit 1
+fi
+# Require a uuid shape.  Server-generated today, so this is defense in depth -- but the value
+# becomes the container NAME and a path segment under the output base, so a "/" or ".." in it
+# would operate outside that base.
+if ! [[ "$uuid" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+    echoerr "ERROR: run-spec-uuid is not a uuid: $uuid"
+    exit 1
+fi
+
+# 2. fetch the run spec.
+res=`h3-gql run_spec "{\"uuid\":\"$uuid\"}"`
+rc=$?
+if [ $rc -ne 0 ]; then
+    # Print only the error MESSAGES, never `echo "$res"`: GraphQL returns partial results, so
+    # a response with errors can still carry a populated data.run_spec (hence the env block,
+    # which may hold secrets).  This output is captured by run-command and PUT to S3.
+    echoerr "ERROR: could not fetch run_spec $uuid (rc=$rc): `jq -r '[.errors[]?.message] | join("; ")' 2>/dev/null <<<"$res"`"
+    exit $rc
+fi
+
+# 3. a null spec means it is already complete (a result was posted) or does not exist.  This
+# is NOT a launch failure: h3-gql exits 0 on a null result (it only checks .errors), and
+# without this branch it would trip step 4's guard and be misreported as a malformed spec.
+# Exit 0 -- a non-zero exit would put a spurious exit_status on the agent_command row.
+spec=`jq -r '.data.run_spec // "null"' <<<"$res"`
+if [ "$spec" = "null" ]; then
+    echoerr "INFO: run_spec $uuid is already complete or does not exist; not retrying"
+    exit 0
+fi
+
+# 4. a spec must say what to run.  Every field but uuid is nullable and a script_url-only spec
+# legitimately has no image, so reject only the case where BOTH are absent.
+image=`jq -r '.data.run_spec.image // empty' <<<"$res"`
+script_url=`jq -r '.data.run_spec.script_url // empty' <<<"$res"`
+auto_rm=`jq -r '.data.run_spec.auto_rm // empty' <<<"$res"`
+if [ -z "$image" ] && [ -z "$script_url" ]; then
+    echoerr "ERROR: run_spec $uuid has neither image nor script_url"
+    exit 1
+fi
+
+# 5. create the per-run output directory.  Whatever we launch writes its result here; we post
+# it and delete it (h3-post-container-results).  Done BEFORE the script_url branch so BOTH
+# launch paths get one -- without a dir the scan has nothing to find, so the result would
+# never be posted and the run would look like it never finished.  Fail the launch if we can't
+# create it, rather than letting work run with nowhere to report.
+ensure_H3_CLI_RUN_CONTAINER_OUTPUT_DIR
+outdir="$H3_CLI_RUN_CONTAINER_OUTPUT_DIR/$uuid"
+if ! mkdir -p "$outdir"; then
+    echoerr "ERROR: could not create the container output directory: $outdir"
+    exit 1
+fi
+# The bind mount carries the HOST's ownership, and H3 images run as a non-root uid that does
+# not exist on this host -- so the dir must be writable by an arbitrary uid or the container
+# refuses to start.  0733, not 0777: the container needs write+traverse but nothing needs to
+# LIST or READ this dir except its owner, and the results hold internal target URLs, so not
+# making them world-readable is worth the extra digit.  abort_launch (not a bare exit) so the
+# empty dir we just made does not leak.
+if ! chmod 0733 "$outdir"; then
+    abort_launch "could not make the container output directory writable: $outdir"
+fi
+
+# 5b. script_url takes precedence: curl-pipe it to bash INSTEAD OF running `image`, and the
+# script owns whatever it launches (the NodeZero pattern; mirrors h3-run-nodezero).  It is RCE
+# by design -- safe only because the URL is server-minted and short-lived, so it must never be
+# client-supplied or client-influenced.  Without this branch a script_url-only spec fell
+# through and ran `docker run ... ""` with an empty image ref.
+#
+# The script gets the output dir via OUTPUT_DIR, the same contract as a container, with two
+# inherent differences: the value is the HOST path (a script runs here, not in a mount
+# namespace -- if it launches its own container it must mount $OUTPUT_DIR the way we do), and
+# RUN_SPEC_UUID is exported too (a script sees the whole base dir and would otherwise have to
+# guess which subdir is its own).  Env, not argv: the env may carry presigned write-grants and
+# argv is world-readable via /proc.
+if [ -n "$script_url" ]; then
+    echoerr "INFO: running the script for run_spec $uuid; output dir: $outdir"
+    run_curl -sS -f "$script_url" | OUTPUT_DIR="$outdir" RUN_SPEC_UUID="$uuid" bash
+    # BOTH statuses matter: `bash` on EMPTY stdin exits 0, so a curl that failed outright
+    # (rc 6, no such host) would otherwise look like a successful launch.  -f also makes curl
+    # fail on an HTTP 4xx/5xx body rather than piping the error page to bash.
+    # Capture the WHOLE array in one assignment -- reading ${PIPESTATUS[0]} is itself a
+    # command that RESETS PIPESTATUS, so a second read would yield "".
+    pipe_status=("${PIPESTATUS[@]}")
+    curl_rc=${pipe_status[0]}
+    bash_rc=${pipe_status[1]}
+    if [ "$curl_rc" -ne 0 ]; then
+        abort_launch "run_spec $uuid: could not fetch the script (curl rc=$curl_rc)" "$curl_rc"
+    fi
+    # Do NOT clean up on a non-zero bash_rc: unlike every other failure here the script RAN, so
+    # it may have written a result (or launched something that will).  Deleting the dir now is
+    # the one move that could destroy a real result.
+    if [ "$bash_rc" -ne 0 ]; then
+        echoerr "ERROR: run_spec $uuid: the script exited $bash_rc"
+    fi
+    exit "$bash_rc"
+fi
+
+# 6. log in to the image's registry if the spec carried a token.  The token is a short-lived
+# credential -- pipe it on stdin, never on argv (world-readable via /proc), and never log it.
+ecr_auth_token=`jq -r '.data.run_spec.ecr_auth_token // empty' <<<"$res"`
+registry=`cut -d/ -f1 <<<"$image"`
+# A registry-less ref ("alpine:3") has no host part to log in to, and cut returns the whole
+# ref -- so require something that looks like a registry host.
+if [ -n "$ecr_auth_token" ] && [[ "$registry" == *.* ]]; then
+    echoerr "INFO: logging in to container registry $registry"
+    if ! $CONTAINER_RUNTIME_CMD login --username AWS --password-stdin "$registry" <<<"$ecr_auth_token"; then
+        abort_launch "could not log in to container registry $registry"
+    fi
+fi
+
+# 7. build the launch as an ARRAY and exec it.  The env values and args originate server-side
+# but travel an untrusted client network and may contain arbitrary characters (a presigned URL
+# alone carries &, =, ?, %) -- so they are NEVER interpolated into an eval'd/word-split string
+# but appended as individual quoted array elements, expanded "${cmd[@]}".  $CONTAINER_RUNTIME_CMD
+# is left UNQUOTED so "sudo docker" word-splits; it is a closed trusted set (detect_container_runtime).
+# shellcheck disable=SC2206  # intentional: "sudo docker" must word-split into two elements
+#
+# --pull always: the image ref is typically a mutable tag (e.g. url-reachability-check:develop.latest)
+# we re-push in place.  Under docker's default (--pull missing) a cached tag is never re-checked,
+# pinning this host to the stale image forever (no reaper, no TTL).  --pull always folds an
+# explicit pull into the launch (like the n0/ad-agent script paths): manifest check every time,
+# a no-op when the tag hasn't moved, changed layers only when it has.  Login already ran (step 6).
+cmd=($CONTAINER_RUNTIME_CMD run -d --pull always --name "h3-$uuid")
+if [ "$auto_rm" = "true" ]; then
+    cmd+=(--rm)
+fi
+cmd+=(-v "$outdir:$CONTAINER_OUTPUT_DIR")
+cmd+=(-e "OUTPUT_DIR=$CONTAINER_OUTPUT_DIR")
+
+# env: name/value pairs, NUL-delimited.  jq MUST emit real NUL bytes -- a literal-space
+# delimiter does not match `read -d ''` and silently transports ZERO env vars.  (jq 1.7's
+# --raw-output0 is unavailable on the target jq 1.6, hence the \u0000 escape.)
+#
+# Read the stream into a flat array, count it, THEN pair it up.  Counting records rather than
+# pairs is what makes the check meaningful: it catches both a jq stream that ends early and a
+# value containing a NUL byte (read as an extra record, silently truncating that value while
+# the pair count still comes out right).  Refusing to launch on a mismatch is the point -- a
+# container missing one env value cannot know it, and fails as if it were the target's fault.
+env_records=()
+while IFS= read -r -d '' record; do
+    env_records+=("$record")
+done < <(jq -j '.data.run_spec.env[]? | (.name + "\u0000" + .value + "\u0000")' <<<"$res")
+
+env_expected=`jq -r '(.data.run_spec.env // []) | length' <<<"$res"`
+if [ "${#env_records[@]}" -ne $((env_expected * 2)) ]; then
+    abort_launch "run_spec $uuid: could not transport all $env_expected env vars; not launching"
+fi
+
+# OUTPUT_DIR is OURS and the spec may not override it.  docker/podman honour the LAST -e for a
+# repeated name, so a spec setting its own OUTPUT_DIR would silently redirect the container's
+# write to a path nothing scans -- the result lost with no error, the exact failure this verb
+# exists to prevent.  Refuse loudly; a spec that sets it is a server-side bug.  (Reads only the
+# NAME, never a value.)
+i=0
+while [ "$i" -lt "${#env_records[@]}" ]; do
+    if [ "${env_records[$i]}" = "OUTPUT_DIR" ]; then
+        abort_launch "run_spec $uuid: the spec must not set OUTPUT_DIR; not launching"
+    fi
+    i=$((i + 2))
+done
+i=0
+while [ "$i" -lt "${#env_records[@]}" ]; do
+    cmd+=(-e "${env_records[$i]}=${env_records[$((i + 1))]}")
+    i=$((i + 2))
+done
+
+cmd+=("$image")
+
+# args: trailing positional args, one array element each.
+arg_records=()
+while IFS= read -r -d '' arg; do
+    arg_records+=("$arg")
+done < <(jq -j '.data.run_spec.args[]? | (. + "\u0000")' <<<"$res")
+
+arg_expected=`jq -r '(.data.run_spec.args // []) | length' <<<"$res"`
+if [ "${#arg_records[@]}" -ne "$arg_expected" ]; then
+    abort_launch "run_spec $uuid: could not transport all $arg_expected args; not launching"
+fi
+cmd+=("${arg_records[@]+"${arg_records[@]}"}")
+
+# 8. launch.  Log the uuid, image and outcome -- NEVER the env block.
+echoerr "INFO: launching container h3-$uuid from image $image; output dir: $outdir"
+"${cmd[@]}"
+rc=$?
+if [ $rc -ne 0 ]; then
+    # Nothing ran, so the dir we made can never receive a result -- abort_launch removes it
+    # (emptiness-guarded) and preserves the docker/podman rc rather than flattening to 1.
+    abort_launch "could not launch container h3-$uuid: rc=$rc" "$rc"
+fi
+echoerr "INFO: launched container h3-$uuid"
+exit $rc

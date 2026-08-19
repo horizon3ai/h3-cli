@@ -1,6 +1,6 @@
 # NodeZero MCP Server – Locally Hosted Deployment Guide
 
-The NodeZero MCP Server allows you to connect your IDE or AI assistant to Horizon3.ai APIs using your own infrastructure and LLM.\
+The NodeZero MCP Server allows you to connect your IDE or AI assistant to Horizon3 APIs using your own infrastructure and LLM.\
 Use this guide to quickly deploy a **locally hosted MCP Server** and start using NodeZero with your tools.
 
 > **Important Notes:**
@@ -15,14 +15,16 @@ Use this guide to quickly deploy a **locally hosted MCP Server** and start using
 
 ---
 
-**Upcoming Release:**
+**Horizon3-Hosted MCP Server (Recommended):**
 
-Horizon3.ai will soon offer a **Hosted MCP Server** featuring:
+Horizon3 now offers a fully managed **Hosted MCP Server** — the recommended option for most users. It features:
 
-- OAuth-based authentication
+- OAuth 2.1 authentication
 - Multi-user mode support
-- Simplified, automated deployment
+- Simplified deployment (infrastructure maintained by Horizon3)
 - Streamable HTTP as the default transport protocol
+
+See the [Hosted MCP Server documentation](https://docs.horizon3.ai/portal/features/mcp/) to get started. The rest of this guide covers the **locally hosted** option, for users who want to run the MCP Server on their own infrastructure and LLM.
 
 ---
 
@@ -58,7 +60,7 @@ If you already have:
 
 ### Step 1: Generate an H3 API Key
 
-1. Navigate to [Horizon3.ai Portal](https://portal.horizon3.ai/) (or [EU Portal](https://portal.horizon3ai.eu/)).
+1. Navigate to [Horizon3 Portal](https://portal.horizon3.ai/) (or [EU Portal](https://portal.horizon3ai.eu/)).
 2. Click your **user profile icon** → **Settings** → **My Settings** tab.
 3. Scroll to **API Keys** and click **Generate API Key**.
 4. Choose the **User** role for full access.

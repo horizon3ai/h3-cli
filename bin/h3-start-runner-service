@@ -69,15 +69,11 @@ fi
  
 # x.
 # determine current user (needed for the service file)
-username="$SUDO_USER"
-if [ -z "$username" ]; then 
-    username="$USER"
-fi
-if [ -z "$username" ] && command -v whoami &> /dev/null; then 
-    username=`whoami`
-fi
-if [ -z "$username" ]; then 
-    echoerr "ERROR: Cannot determine username - tried USER, SUDO_USER, and whoami"
+# Use the owner of H3_CLI_HOME — this is the user who installed h3-cli
+# and should be the user that runs the runner service.
+username=$(file_owner "$H3_CLI_HOME")
+if [ -z "$username" ]; then
+    echoerr "ERROR: Cannot determine username from H3_CLI_HOME=$H3_CLI_HOME"
     exit 2
 fi
 
@@ -126,20 +122,47 @@ if [ $rc -ne 0 ]; then
     exit $rc
 fi
 
-# Configure runner to work with docker proxy
+# Configure runner to work with docker/podman proxy
 docker_proxy="${HOME}/.docker/config.json"
+podman_proxy="${HOME}/.config/containers/containers.conf"
 runner_proxy_dir="/etc/systemd/system/${service_name}.service.d"
 runner_proxy_file="/etc/systemd/system/${service_name}.service.d/http-proxy.conf"
 
 if [ -f ${docker_proxy} ]; then
 
-    # Get proxy values from config.json
+    # Get proxy values from Docker config.json
     proxy=`cat $docker_proxy | jq -r '.proxies.default.httpProxy'`
 
     no_proxy=`cat $docker_proxy | jq -r '.proxies.default.noProxy'`
 
     # Check if proxy is setup already
     if [ ! -e ${proxy} ] && [ "${proxy}" != "null" ] && [ "${no_proxy}" != "null" ]; then
+
+        # Create service file for nodezero runner
+        sudo -E mkdir -p $runner_proxy_dir
+        sudo -E touch $runner_proxy_file
+
+        # Save proxy settings to nodezero runner's service file
+        proxy_service='[Service]
+Environment="HTTP_PROXY='${proxy}'"
+Environment="HTTPS_PROXY='${proxy}'"
+Environment="NO_PROXY='${no_proxy}'"
+Environment="http_proxy='${proxy}'"
+Environment="https_proxy='${proxy}'"
+Environment="no_proxy='${no_proxy}'"
+'
+        sudo -E bash -c "echo '${proxy_service}' > ${runner_proxy_file}"
+    fi
+    # Proxy has not been setup, do not need to change anything.
+
+elif [ -f ${podman_proxy} ]; then
+
+    # Get proxy values from Podman containers.conf
+    # Handles both top-level key=value and TOML array format: env = ["https_proxy=http://..."]
+    proxy=$(grep -i 'https_proxy=' $podman_proxy | head -1 | sed 's/.*https_proxy=//I;s/[",]//g' | tr -d '[:space:]')
+    no_proxy=$(grep -i 'no_proxy=' $podman_proxy | head -1 | sed 's/.*no_proxy=//I;s/[",]//g' | tr -d '[:space:]')
+
+    if [ -n "${proxy}" ] && [ -n "${no_proxy}" ]; then
 
         # Create service file for nodezero runner
         sudo -E mkdir -p $runner_proxy_dir

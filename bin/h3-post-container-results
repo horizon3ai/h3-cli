@@ -1,0 +1,179 @@
+#!/bin/bash
+#
+# usage: h3-post-container-results
+#
+# Collects the results of finished h3 run-container containers and reports them to the API.
+#
+# Runs automatically at the top of every NodeZero Runner poll cycle (see h3-start-agent);
+# there is normally no need to invoke it by hand.
+#
+# For each $H3_CLI_RUN_CONTAINER_OUTPUT_DIR/{run-spec-uuid}/result.json, posts the file to the
+# create_run_spec_result mutation and deletes the directory IFF the API confirms it stored
+# the result (accepted: true).  Anything else -- any error, any status, any network failure
+# -- keeps the directory and retries on the next cycle.
+#
+# TWO RULES THIS SCRIPT EXISTS TO HONOR:
+#
+# 1. The result file is OPAQUE.  We check its SHAPE (a JSON object) and post it verbatim.  We
+#    do not read any field out of it and do not branch on its contents.  That is what keeps
+#    this script generic: a new kind of container result must need no change here.  The
+#    run-spec uuid comes from the DIRECTORY NAME, never from the file -- the directory is
+#    our own bookkeeping, and reading the uuid from the file would let a container name the
+#    subject it is authorized against.
+#
+# 2. NEVER delete a result the API did not confirm it stored.  The file is the only record
+#    of a completed run -- the container is gone.  Deleting on a failed post turns a
+#    recoverable failure into permanent data loss.
+#
+
+source h3-env
+
+# Ceiling on one create_run_spec_result call.  MANDATORY, not advisory: this script runs
+# BEFORE command pickup in the poll loop, so a hung post would delay command dispatch on
+# every runner.  Keep it well under the loop's 60s tick.
+POST_TIMEOUT_S="${H3_CLI_POST_CONTAINER_RESULTS_TIMEOUT_S:-20}"
+
+# The one filename the container contract defines.  Match it EXACTLY, never result.json*:
+# the container writes result.json.tmp then renames it, so a .tmp beside it means a run is
+# still in flight and the final name is always a complete file.
+RESULT_FILENAME="result.json"
+
+# Quarantine for a result.json that is not a JSON object, which can never succeed on a retry.
+# The leading dot is load-bearing: it keeps the quarantine out of the */ scan glob below.
+QUARANTINE_DIRNAME=".failed"
+
+# 1.
+# resolve the base dir.  mkdir it even when nothing has ever run here, so the scan glob
+# below behaves on a runner that has never launched a container.
+ensure_H3_CLI_RUN_CONTAINER_OUTPUT_DIR
+base="$H3_CLI_RUN_CONTAINER_OUTPUT_DIR"
+if ! mkdir -p "$base"; then
+    echoerr "ERROR: could not create the container output directory: $base"
+    exit 1
+fi
+
+# 2.
+# scan for finished runs.
+# NOTE: nullglob so an empty base dir yields nothing rather than the literal glob string.
+shopt -s nullglob
+exit_rc=0
+for dir in "$base"/*/; do
+    dir="${dir%/}"
+    result_file="$dir/$RESULT_FILENAME"
+
+    # The per-run DIRECTORY must be a real directory we created, not a symlink to one.  The
+    # file-level -L check below is not enough on its own: a symlink at THIS level points the
+    # whole scan at an attacker-chosen directory, and its result.json is then a perfectly
+    # ordinary plain file -- so the contents of an arbitrary host directory get posted as
+    # that run_spec's result. Verified before this check existed. Same laundering the
+    # file-level check closes, one level up.
+    if [ -L "$dir" ]; then
+        echoerr "ERROR: $dir is a symlink, not a run output directory; refusing to post it"
+        exit_rc=1
+        continue
+    fi
+
+    # no result file yet -> the container is still running (or died without writing one).
+    # Not an error: leave it alone and do not fail the scan.
+    #
+    # NOTE the -L: a DANGLING symlink fails -e, so testing -e alone would `continue` here and
+    # never reach the not-a-plain-file check below -- silently, on every tick, forever.
+    # Verified.  A broken symlink is a thing someone put there, not an absent file.
+    if [ ! -e "$result_file" ] && [ ! -L "$result_file" ]; then
+        continue
+    fi
+
+    # THE UUID COMES FROM THE DIRECTORY NAME.  Never from the file.
+    uuid=`basename "$dir"`
+
+    # A SYMLINK is refused rather than followed. The container -- or anything else with
+    # write access to the output dir -- could point it at an arbitrary host file and have
+    # its contents posted as this run_spec's result: a read of the runner's filesystem
+    # laundered into the tenant's own data. Verified before the check existed.
+    #
+    # Anything that is not a plain file (a directory, a fifo) is refused too: it was
+    # otherwise indistinguishable from "still running" and produced NO log line at all,
+    # silently, every tick -- which is exactly the alarm this verb is supposed to raise.
+    if [ -L "$result_file" ] || [ ! -f "$result_file" ]; then
+        echoerr "ERROR: $result_file is not a plain file; refusing to post it. Keeping $dir"
+        exit_rc=1
+        continue
+    fi
+
+    # An UNREADABLE file is not a malformed one.  The container runs as a different uid, so
+    # a restrictive umask on its side yields a file we cannot open -- fixable by hand, so
+    # keep it and retry rather than quarantining it as hopeless.
+    if [ ! -r "$result_file" ]; then
+        echoerr "ERROR: $result_file is not readable; keeping $dir and retrying on the next cycle"
+        exit_rc=1
+        continue
+    fi
+
+    # a file that is not a JSON object can never be accepted (the API takes a JSON object
+    # and nothing else), so quarantine it now rather than retrying it forever.  This is the
+    # ONLY quarantine case.
+    #
+    # NOTE: test the TYPE rather than using `jq -e .`, which exits 0 on an EMPTY file
+    # (verified) -- a truncated write would otherwise be posted as `result: null`.
+    # This is a check on the payload's SHAPE, not on its contents: nothing below reads a
+    # field out of it.
+    payload_type=`jq -r 'type' 2>/dev/null < "$result_file"`
+    if [ "$payload_type" != "object" ]; then
+        quarantine="$base/$QUARANTINE_DIRNAME/$uuid"
+        # Never clobber an earlier quarantine: a re-run of the same run_spec quarantined
+        # twice would otherwise destroy the first file, and "never delete a result the API
+        # did not confirm" applies to quarantined ones too.  They are the diagnosis.
+        if [ -e "$quarantine" ]; then
+            quarantine="$quarantine.$(date +%Y%m%d%H%M%S).$$"
+        fi
+        echoerr "ERROR: $result_file is not a JSON object; quarantining run_spec $uuid to $quarantine"
+        mkdir -p "$base/$QUARANTINE_DIRNAME"
+        if ! mv "$dir" "$quarantine"; then
+            echoerr "ERROR: could not quarantine $dir"
+        fi
+        exit_rc=1
+        continue
+    fi
+
+    # build the variables with jq, so the file's contents are carried as JSON data rather
+    # than interpolated into a JSON literal (the payload holds a client-supplied URL and
+    # arbitrary container-written error strings).
+    json_params=`jq -n --arg u "$uuid" --slurpfile p "$result_file" '{run_spec_uuid:$u, result:$p[0]}'`
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        echoerr "ERROR: could not build the request for run_spec $uuid; keeping $dir"
+        exit_rc=1
+        continue
+    fi
+
+    # NOTE: the payload is handed to h3-gql AS-IS, and that is only safe because h3-gql's own
+    # expansions are quoted.  They were not: `main $*` word-split the payload and
+    # glob-expanded it, so a container error string containing a standalone asterisk --
+    # "match * failed", entirely plausible from a playwright selector error -- arrived as the
+    # filenames in the runner's working directory, was accepted (the API validates structure,
+    # never this field), and the file was then deleted as delivered.  Fixed at the source; if
+    # anyone re-introduces an unquoted expansion in h3-gql, this verb loses results silently.
+
+    # NOTE: log the uuid and the outcome, never the payload.  It carries a client-supplied
+    # target URL and arbitrary container-written strings, and this output lands in runner
+    # logs that are shipped off-box.
+    echoerr "INFO: posting result for run_spec $uuid"
+    res=`timeout "$POST_TIMEOUT_S" h3-gql create_run_spec_result "$json_params"`
+    rc=$?
+
+    # accepted:true -- and ONLY this -- deletes.
+    #
+    # NOTE: compare jq's OUTPUT to the literal "true"; do NOT hang this on `jq -e`'s exit
+    # code.  `jq -e` exits 0 on EMPTY input (verified), so `jq -e '... == true'` would
+    # report success for a post that produced no response at all -- and delete the result.
+    accepted=`jq -r 'if .data.create_run_spec_result.accepted == true then "true" else "false" end' 2>/dev/null <<<"$res"`
+    if [ $rc -eq 0 ] && [ "$accepted" = "true" ]; then
+        echoerr "INFO: result accepted for run_spec $uuid; removing $dir"
+        rm -rf "${dir:?}"
+    else
+        echoerr "ERROR: result NOT accepted for run_spec $uuid (rc=$rc); keeping $dir and retrying on the next cycle. response: $res"
+        exit_rc=1
+    fi
+done
+
+exit $exit_rc

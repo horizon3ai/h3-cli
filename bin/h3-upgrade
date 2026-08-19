@@ -13,7 +13,7 @@ h3_download_url=$1
 
 # Update the download URL in the global profile, if provided
 if [ "$h3_download_url" == "ng" ]; then
-    H3_CLI_DOWNLOAD_URL="https://downloads.horizon3ai.com/utilities/cli/h3-cli.zip"
+    H3_CLI_DOWNLOAD_URL="https://downloads.horizon3ai.com/utilities/cli"
     ensure_profile "$H3_CLI_PROFILES_DIR/__global__.env"
     upsert_profile_var "$H3_CLI_PROFILES_DIR/__global__.env" "H3_CLI_DOWNLOAD_URL" "$H3_CLI_DOWNLOAD_URL"
 fi
@@ -21,10 +21,16 @@ fi
 # export so it's available to easy_install.sh
 export H3_CLI_HOME=$H3_CLI_HOME
 
+# Normalize H3_CLI_DOWNLOAD_URL to a base directory URL.
+# Existing installs may have the full zip URL (e.g. .../h3-cli.zip); strip the filename.
+case "$H3_CLI_DOWNLOAD_URL" in
+    *.zip|*.tar.gz) H3_CLI_DOWNLOAD_URL=$(dirname "$H3_CLI_DOWNLOAD_URL") ;;
+esac
+
 # IF H3_CLI_DOWNLOAD_URL is set, use it to fetch easy_install.sh
 # this ensure that we use the right easy_install.sh for the version being installed.
 if [ -n "$H3_CLI_DOWNLOAD_URL" ]; then
-    H3_CLI_EASY_INSTALL_URL=`dirname "$H3_CLI_DOWNLOAD_URL"`/easy_install.sh
+    H3_CLI_EASY_INSTALL_URL="${H3_CLI_DOWNLOAD_URL}/easy_install.sh"
     curl "$H3_CLI_EASY_INSTALL_URL" | bash
     rc=$?
     if [ $rc -ne 0 ]; then

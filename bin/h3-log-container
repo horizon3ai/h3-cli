@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# usage: h3-log-container {run-spec-uuid} [{opts}]
+#
+# Shows the logs for the container named h3-{run-spec-uuid}.
+#
+# Any additional {opts} are passed through to the container runtime, eg:
+#   h3 log-container {run-spec-uuid} -f
+#   h3 log-container {run-spec-uuid} --tail 100
+#
+
+source h3-env
+
+detect_container_runtime
+
+uuid="$1"
+if [ -z "$uuid" ]; then
+    echoerr "ERROR: run-spec-uuid is required"
+    exit 1
+fi
+shift
+
+$CONTAINER_RUNTIME_CMD logs "$@" "h3-$uuid"

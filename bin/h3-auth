@@ -30,31 +30,71 @@ function gen_jwt {
 HERE
 }
 
+# Authenticate against a specific regional endpoint. On success, persist the
+# region URLs to the profile and return 101 to signal a redirect -- the caller
+# (h3-gql) reloads the profile on 101 so the new URLs take effect in the current
+# invocation. On failure, leave the region URLs in place and return curl's rc so
+# refresh_jwt_with_fallback can try the next region.
+# usage: try_region <REGION_NAME> <auth_url> <gql_url>
+function try_region {
+    local region="$1"
+    H3_AUTH_URL="$2"
+    H3_GQL_URL="$3"
 
-function refresh_jwt_fallback_eu {
     refresh_jwt
     rc=$?
     if [ $rc -ne 0 ]; then
-        # try eu
-        H3_AUTH_URL=https://api.horizon3ai.eu/v1/auth
-        H3_GQL_URL=https://api.horizon3ai.eu/v1/graphql
+        return $rc
+    fi
 
-        refresh_jwt
-        rc=$?
-        if [ $rc -ne 0 ]; then
-            echoerr "ERROR: Authentication Failed. For more details, enable verbose logging (export H3_CLI_VERBOSE=1) and retry."
-            return $rc
-        fi
-        # save eu URLs in profile
-        profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
-        cat <<HERE >> "$profile"
+    # save the region URLs in the profile
+    profile="$H3_CLI_PROFILES_DIR/$H3_CLI_PROFILE.env"
+    cat <<HERE >> "$profile"
 H3_AUTH_URL=$H3_AUTH_URL
 H3_GQL_URL=$H3_GQL_URL
 HERE
-        # force user to re-try so the new URLs are picked up
-        echoerr "INFO: REDIRECTED TO EU: Your profile has been redirected to our EU region."
+    # signal the caller to reload the profile so the new URLs are picked up
+    echoerr "INFO: REDIRECTED TO $region: Your profile has been redirected to our $region region."
+    return 101
+}
+
+
+# Authenticate against the profile's configured endpoint; if that fails, fall
+# back through the regional endpoints (EU, then AU) in turn. The terminal
+# "Authentication Failed" error is emitted only once, after EVERY endpoint has
+# failed -- so a user who is ultimately redirected to a region never sees a
+# scary error on an auth that actually succeeds.
+# :returns: 0 (configured endpoint worked), 101 (redirected to a region), or
+#           curl's non-zero rc (all endpoints failed).
+function refresh_jwt_with_fallback {
+    # 1. try the profile's configured URLs
+    refresh_jwt
+    rc=$?
+    if [ $rc -eq 0 ]; then
+        return 0
+    fi
+
+    # 2. fall back through the regional endpoints. Remember the configured URLs
+    #    so we can restore them if none of the regions work.
+    local orig_auth_url="$H3_AUTH_URL"
+    local orig_gql_url="$H3_GQL_URL"
+
+    try_region EU https://api.horizon3ai.eu/v1/auth https://api.horizon3ai.eu/v1/graphql
+    rc=$?
+    if [ $rc -eq 101 ]; then
         return 101
     fi
+
+    try_region AU https://api.horizon3ai.au/v1/auth https://api.horizon3ai.au/v1/graphql
+    rc=$?
+    if [ $rc -eq 101 ]; then
+        return 101
+    fi
+
+    # every endpoint failed -- restore the configured URLs and report once
+    H3_AUTH_URL="$orig_auth_url"
+    H3_GQL_URL="$orig_gql_url"
+    echoerr "ERROR: Authentication Failed. For more details, enable verbose logging (export H3_CLI_VERBOSE=1) and retry."
     return $rc
 }
 
@@ -99,7 +139,7 @@ function read_jwt {
         fi 
     fi
     if [ -z "$H3_API_JWT" ]; then
-        refresh_jwt_fallback_eu
+        refresh_jwt_with_fallback
     fi
 }
 
@@ -111,7 +151,7 @@ if [ -z "$cmd" ]; then
     read_jwt
 
 elif [ "$cmd" = "force" ]; then
-    refresh_jwt_fallback_eu
+    refresh_jwt_with_fallback
 fi
 
 rc=$?

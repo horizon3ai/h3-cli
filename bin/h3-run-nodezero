@@ -13,6 +13,8 @@
 
 source h3-env
 
+detect_container_runtime
+
 case $2 in
     --force) force="true" ;;
 esac
@@ -31,9 +33,9 @@ if [ -z "$op_id" ]; then
 fi
  
 # check optional docker prune setting
-if [ -n "$H3_CLI_DOCKER_PRUNE" ]; then 
-    echoerr "INFO: docker system prune -a -f"
-    sudo docker system prune -a -f
+if [ -n "$H3_CLI_DOCKER_PRUNE" ]; then
+    echoerr "INFO: sudo $CONTAINER_RUNTIME system prune -a -f"
+    sudo $CONTAINER_RUNTIME system prune -a -f
 fi
 
 # 2.

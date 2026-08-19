@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# usage: h3-stop-container {run-spec-uuid}
+#
+# Stops the container named h3-{run-spec-uuid}.
+#
+# NOTE: does not remove the container -- see h3 rm-container.
+#
+
+source h3-env
+
+detect_container_runtime
+
+uuid="$1"
+if [ -z "$uuid" ]; then
+    echoerr "ERROR: run-spec-uuid is required"
+    exit 1
+fi
+
+$CONTAINER_RUNTIME_CMD stop "h3-$uuid"

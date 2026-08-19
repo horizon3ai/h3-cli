@@ -1,0 +1,15 @@
+query q($uuid: String!) {
+    run_spec(uuid: $uuid) {
+        uuid
+        run_spec_type
+        image
+        ecr_auth_token
+        env {
+            name
+            value
+        }
+        args
+        auto_rm
+        script_url
+    }
+}

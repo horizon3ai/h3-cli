@@ -1,0 +1,6 @@
+mutation m($run_spec_uuid: String!, $result: JSONObject!) {
+    create_run_spec_result(run_spec_uuid: $run_spec_uuid, result: $result) {
+        run_spec_uuid
+        accepted
+    }
+}

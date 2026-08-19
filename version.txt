@@ -1,3 +1,60 @@
+2026-08-19: August 19, 2026
+
+NodeZero Runner containers (new):
+- New subcommands `h3 run-container`, `h3 post-container-results`, `h3 ps-container`,
+  `h3 log-container`, `h3 stop-container`, and `h3 rm-container` for launching and managing
+  H3-managed containers on a NodeZero Runner.
+- `h3 run-container {uuid}` fetches its run spec (image, env, args, auto_rm) from the API and
+  launches the container detached as `h3-{uuid}`, with a per-run output directory mounted at
+  /output. Normally run by a Runner in response to a queued command.
+- A run spec carrying a `script_url` is curl-piped to bash instead of running an image. The
+  script is given `OUTPUT_DIR` (the per-run output directory, as a HOST path) and
+  `RUN_SPEC_UUID` in its environment, and is expected to write its result to
+  `$OUTPUT_DIR/result.json` -- the same contract a container has. A script that launches its
+  own container should mount it the same way: `-v "$OUTPUT_DIR":/output -e OUTPUT_DIR=/output`.
+- `h3 post-container-results` collects the results of finished containers and reports them to
+  the API. It runs automatically on each Runner poll cycle; there is no need to invoke it by
+  hand.
+- New setting `H3_CLI_RUN_CONTAINER_OUTPUT_DIR` (default `${TMPDIR:-/tmp}/h3-cli/run-container-output`)
+  -- where per-run container output is written while it awaits reporting. Point this at a
+  PERSISTENT path if the host clears /tmp on reboot: results that have not yet been reported
+  are lost on reboot, which surfaces as work that never completes.
+
+New region:
+- Added AU regional endpoint support (`api.horizon3ai.au`), including automatic redirect of a
+  profile to the AU region and an AU option in the install scripts.
+
+Documentation:
+- Documentation now lives on the official docsite at https://docs.horizon3.ai/cli/, which is
+  the source of truth. The in-repo `guides/` directory has been removed and README.md slimmed
+  to a short intro plus links to the docsite (the MCP server docs under `mcp/` are unchanged).
+- Installing by `git clone` of this repo is deprecated; see the docsite for the current install
+  instructions (`easy_install.sh` / the downloads site).
+
+Bug fixes:
+- Fixed a bug in `h3 gql` (and every subcommand that calls the GraphQL API) that silently
+  corrupted the request variables payload: unquoted shell expansions collapsed runs of
+  whitespace, turned tabs into spaces, and expanded a lone `*` against the current working
+  directory. Variables now reach the API byte-for-byte.
+- `h3 cache-secret` now exits non-zero when it fails to write the credential to disk, instead
+  of reporting success.  The error message reports the underlying write error and the ownership
+  of the blocking path, and any partial file is removed.
+- Several subcommands now propagate the API's non-zero exit code on failure instead of masking
+  it -- previously some could report success when the underlying API call failed. Affected
+  paths include `hello-world` and `pentest-reports`.
+- Fixed a handful of latent shell-script bugs surfaced by a new shellcheck gate on the codebase.
+- Fixed intermittent "could not resolve query" failures on NodeZero Runners. GraphQL fragment
+  resolution staged its work in fixed-name temp files, so overlapping `h3 gql` invocations on a
+  busy Runner (the poll loop, backgrounded run-command children, and container-result reporting)
+  could clobber each other's files mid-read and spuriously fail a query. Fragment resolution is
+  now fully independent per invocation, with no shared temp files.
+
+--------------------------
+2026-06-03: June 3, 2026
+
+- Add podman container runtime support
+- Publish and install h3-cli from tar.gz in addition to .zip
+
 2026-04-29: April 29, 2026
 
 - Fix auth logic gate for non-json response

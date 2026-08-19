@@ -7,12 +7,14 @@
 
 source h3-env
 
-# 1. Query for any NodeZero containers.
-docker_containers=$(docker ps --format '{{.Names}}' | grep n0-)
+detect_container_runtime
 
-# 2. For each NodeZero container, run docker stop.
-for docker_container in $docker_containers
+# 1. Query for any NodeZero containers.
+nodezero_containers=$($CONTAINER_RUNTIME_CMD ps --format '{{.Names}}' | grep n0-)
+
+# 2. For each NodeZero container, run container stop.
+for container in $nodezero_containers
 do
-  res=$(docker stop $docker_container)
+  res=$($CONTAINER_RUNTIME_CMD stop $container)
   echo "Stopped NodeZero container $res."
 done

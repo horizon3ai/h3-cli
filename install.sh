@@ -149,6 +149,10 @@ function set_auth_urls {
                 H3_AUTH_URL="https://api.horizon3ai.eu/v1/auth"
                 H3_GQL_URL="https://api.horizon3ai.eu/v1/graphql"
                 ;;
+            "prod_au")
+                H3_AUTH_URL="https://api.horizon3ai.au/v1/auth"
+                H3_GQL_URL="https://api.horizon3ai.au/v1/graphql"
+                ;;
             "fh-prod")
                 H3_AUTH_URL="https://api.gateway.gov-horizon3ai.com/v1/auth"
                 H3_GQL_URL="https://api.gateway.gov-horizon3ai.com/v1/graphql"
@@ -160,6 +164,10 @@ function set_auth_urls {
             "eu")
                 H3_AUTH_URL="https://api.gateway.horizon3ai.eu/v1/auth"
                 H3_GQL_URL="https://api.gateway.horizon3ai.eu/v1/graphql"
+                ;;
+            "au")
+                H3_AUTH_URL="https://api.gateway.horizon3ai.au/v1/auth"
+                H3_GQL_URL="https://api.gateway.horizon3ai.au/v1/graphql"
                 ;;
             "fed-fh")
                 H3_AUTH_URL="https://api.gateway.gov-horizon3ai.com/v1/auth"
@@ -182,9 +190,26 @@ function chmod_bin_dir {
     fi
 }
 
+# set SELinux context so systemd can execute h3-cli scripts
+function selinux_relabel_bin_dir {
+    if command -v getenforce &> /dev/null && [ "$(getenforce)" = "Enforcing" ]; then
+        echo "[.] SELinux is enforcing, setting bin_t context on $H3_CLI_HOME/bin ..."
+        chcon -R -t bin_t "$H3_CLI_HOME/bin" 2>/dev/null
+        rc=$?
+        if [ $rc -ne 0 ]; then
+            echoerr "chcon failed, trying with sudo..."
+            sudo chcon -R -t bin_t "$H3_CLI_HOME/bin"
+        fi
+    fi
+}
+
 # x.
 # chmod h3-cli/bin
 chmod_bin_dir
+
+# x.
+# set SELinux context if needed
+selinux_relabel_bin_dir
 
 # x.
 # verify this script is being run from the h3-cli dir.

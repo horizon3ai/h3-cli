@@ -70,3 +70,29 @@ echoerr "REMOVING LOG FILE: $log_file"
 rm "$log_file"
 
 exit $rc
+
+
+# NOTE: the `# @help` block is placed at the END of this file on purpose.
+# h3-run-command runs `h3 upgrade`, which overwrites this very file in place while
+# it is still executing; bash resumes reading by byte offset, so the body above must
+# keep its original byte layout for the upgrade to complete and the runner to respawn
+# (see tests/test_h3_upgrade_runner.py).  The centralized --help dispatch in bin/h3
+# extracts this block regardless of where it sits, so keeping it below `exit`
+# (never reached in normal execution) is safe.
+# @help
+#
+# h3-run-command: Run a queued h3-cli command and report its result.
+#
+# Usage:
+#     h3 run-command <cmd-uuid> <cmd>
+#
+# Description:
+#     Runs the h3-cli command <cmd>, tees its output to a per-command log file,
+#     and reports the exit status back via the agent_command_complete mutation,
+#     then uploads the log to the returned URL. Normally invoked by a NodeZero
+#     Runner's poll loop when it picks up a queued agent command, not by hand.
+#
+# Options:
+#     <cmd-uuid>   uuid of the agent command being run.
+#     <cmd>        the h3-cli command to execute (e.g. "run-container <uuid>").
+#

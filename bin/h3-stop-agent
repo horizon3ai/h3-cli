@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# usage: h3 stop-agent [name]
+#
+# @help
+#
+# h3-stop-agent: Stop NodeZero Runner process(es) on the local machine.
+#
+# Usage:
+#     h3 stop-runner [name]
+#     h3 stop-agent [name]
+#
+# Description:
+#     Stops the Runner with the given name on this machine.  If no name is given,
+#     stops ALL Runner processes on this machine.  If the Runner was registered as
+#     a systemd service, the service is also stopped (and, when a [name] is given,
+#     disabled).
+#
+# Options:
+#     [name]   The Runner to stop.  If omitted, all Runners on this machine are stopped.
+#
+
+source h3-utils
+runner_name=$1
+if [ -z "$runner_name" ]; then
+    if is_systemd_running; then
+        # find and stop all nodezero-runner services
+        # TODO: check if runner service in use via systemctl status
+        # TODO: check if sudo systemctl will work ?
+        echo sudo systemctl stop 'nodezero-runner*'
+        sudo systemctl stop 'nodezero-runner*'
+        # rc=$?
+        # if [ $rc -eq 0 ]; then
+        #     # TODO: glob doesn't work for disable.
+        #     # TODO: maybe just require the runner name?
+        #     # echo sudo systemctl disable 'nodezero-runner*'
+        #     # sudo systemctl disable 'nodezero-runner*'
+        # fi
+    fi
+else
+    if is_systemd_running; then
+        # Must slugify the runner name to match what we do in `h3-start-runner-service`
+        runner_name_slug=`slugify "$runner_name"`
+
+        service_name="nodezero-runner-$runner_name_slug"
+        echo sudo systemctl stop "$service_name"
+        sudo systemctl stop "$service_name"
+        rc=$?
+        if [ $rc -eq 0 ]; then
+            echo sudo systemctl disable "$service_name"
+            sudo systemctl disable "$service_name"
+        fi
+    fi
+fi
+pkill_agent "$@"

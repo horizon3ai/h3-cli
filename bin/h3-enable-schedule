@@ -2,7 +2,24 @@
 #
 # Simple shell script for enabling a schedule.
 # 
-# usage: h3-enable-schedule {schedule-name} 
+# usage: h3-enable-schedule {schedule-name}
+#
+
+# @help
+#
+# h3-enable-schedule: Enable a schedule.
+#
+# Usage:
+#     h3 enable-schedule <schedule-name>
+#
+# Description:
+#     Enables the named schedule so its scheduled actions run at their cron times.
+#
+# Options:
+#     <schedule-name>   Name of the schedule to enable (required).
+#
+# See also:
+#     h3 schedule, h3 disable-schedule
 #
 
 # 0.

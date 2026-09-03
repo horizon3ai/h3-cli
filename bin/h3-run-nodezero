@@ -10,18 +10,50 @@
 # (in other words, the script does not wait for NodeZero to finish).
 #
 
+# @help
+#
+# h3-run-nodezero: Download and run NodeZero locally for a pentest.
+#
+# Usage:
+#     h3 run-nodezero [op_id] [--force]
+#     h3 launch-nodezero [op_id] [--force]
+#
+# Description:
+#     Downloads and launches NodeZero locally (as a Docker/container image) for
+#     the given op_id, or the latest pentest by default. The op must be in a
+#     launchable state. NodeZero continues running the pentest in the background
+#     after this script exits.
+#
+#     If H3_CLI_DOCKER_PRUNE is set, this first runs a destructive
+#     '<container-runtime> system prune -a -f' to reclaim space.
+#
+# Options:
+#     op_id     The pentest to run. Defaults to the latest pentest.
+#     --force   Stop any other running NodeZero containers first (h3 stop-nodezero).
+#
+# See also:
+#     h3 run-nodezero-on-runner, h3 stop-nodezero, h3 run-pentest-and-nodezero
+#
+
 
 source h3-env
 
 detect_container_runtime
 
-case $2 in
-    --force) force="true" ;;
-esac
+# parse args: --force may appear in any position; op_id is the first
+# non-flag positional and defaults to the latest pentest if omitted.
+force=""
+op_id=""
+for arg in "$@"; do
+    if [ "$arg" = "--force" ]; then
+        force="true"
+    elif [ -z "$op_id" ]; then
+        op_id="$arg"
+    fi
+done
 
 # 1.
 # fetch the op_id from latest-pentest if necessary
-op_id="$1"
 if [ -z "$op_id" ]; then
     pentest=`h3 latest-pentest`
     rc=$?

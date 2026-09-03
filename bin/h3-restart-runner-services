@@ -3,7 +3,27 @@
 # usage: h3-restart-runner-services
 #
 # Restarts all systemd runner services using this h3-cli installation (same H3_CLI_HOME).
-# 
+#
+
+# @help
+#
+# h3-restart-runner-services: Restart the NodeZero Runner systemd services on this machine.
+#
+# Usage:
+#     h3 restart-runner-services
+#     h3 restart-agent-services
+#
+# Description:
+#     Restarts all systemd NodeZero Runner (a.k.a. agent) services on this
+#     machine that are (a) currently in the active (running) state and (b)
+#     use this h3-cli installation (matching H3_CLI_HOME). The Runner service
+#     executing this command (H3_CLI_RUN_BY_RUNNER) is skipped so it does not
+#     restart itself. Requires systemd; run with sudo -E (or without sudo)
+#     so H3_CLI_HOME is preserved.
+#
+# See also:
+#     h3 start-runner-service, h3 agents
+#
 
 # 0.
 # include common utils

@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# usage: h3 hello-world
+#
+# @help
+#
+# h3-hello-world: Test basic connectivity with the Horizon3 API.
+#
+# Usage:
+#     h3 hello-world
+#
+# Description:
+#     Sends a hello_world query to the API and prints the response.  Useful for
+#     verifying that your API key, network, and API URLs are configured correctly.
+#
+
+res=`h3-gql hello_world`
+rc=$?
+if [ $rc -eq 0 ]; then cat <<<$res | jq .
+else echo "$res"; fi
+exit $rc

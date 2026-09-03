@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# usage: h3 op-template <uuid>
+#
+# @help
+#
+# h3-op-template: Show a single pentest (op) template.
+#
+# Usage:
+#     h3 op-template <uuid>
+#
+# Options:
+#     <uuid>   The op-template to show.  Required.  (See: h3 op-templates)
+#
+
+json_params=`cat <<HERE
+{"uuid":"$*"}
+HERE
+`
+res=`h3-gql op_template $json_params`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq '.data.op_template'
+else
+    echo "$res"
+fi
+exit $rc

@@ -171,9 +171,12 @@ while [ 1 ]; do
     echoerr "[$agent_name:$$] Received command: $agent_command"
     command_uuid=`cat <<<$agent_command | jq -r .uuid`
     command=`cat <<<$agent_command | jq -r .command`
+    agent_uuid=`cat <<<$agent_command | jq -r .agent_uuid`
     echoerr "[$agent_name:$$] Running command in a separate process: $command"
     # set env var so subcmds know this is being run by a runner/agent.
     export H3_CLI_RUN_BY_RUNNER="$agent_name"
+    # set the agent uuid so subcmds (rotate-agent-keys, cache-secret) can use it.
+    export H3_CLI_RUN_BY_RUNNER_UUID="$agent_uuid"
     # special-handle upgrade command.  
     if [ "$command" = "upgrade" ]; then 
         h3-run-command "$command_uuid" "$command"   # run synchonously.

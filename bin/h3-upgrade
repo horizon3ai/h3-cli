@@ -44,3 +44,28 @@ else
 fi
 
 exit $rc
+
+
+# NOTE: the `# @help` block is placed at the END of this file on purpose.
+# h3-upgrade runs easy_install.sh, which overwrites this very file in place while it
+# is still executing; bash resumes reading by byte offset, so the body above must keep
+# its original byte layout or the resume lands mid-token and re-triggers the install
+# (see tests/test_h3_upgrade_runner.py).  The centralized --help dispatch in bin/h3
+# extracts this block regardless of where it sits, so keeping it below `exit`
+# (never reached in normal execution) is safe.
+# @help
+#
+# h3-upgrade: Upgrade h3-cli to the latest version.
+#
+# Usage:
+#     h3 upgrade [ng]
+#
+# Description:
+#     Downloads and runs easy_install.sh to self-upgrade the h3-cli
+#     installation in place. The download source is H3_CLI_DOWNLOAD_URL.
+#     Passing 'ng' switches the download URL to the NodeZero Gateway (NG)
+#     endpoint and persists it to the global profile before upgrading.
+#
+# Options:
+#     ng   Upgrade using the NodeZero Gateway download URL.
+#

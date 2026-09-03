@@ -1,3 +1,25 @@
+2026-09-02: September 2, 2026
+
+Command help (new):
+- Every subcommand now has a help screen: `h3 <cmd> --help` (and `-h`) or `h3 help <cmd>`
+  renders it. 
+- The top-level `h3 help` (or `h3 --help` / `h3 -h` / `h3`) overview was rewritten to be 
+  workflow-oriented (getting started -> run a pentest -> Runners -> scheduling -> accounts) 
+  and now lists every documented subcommand.
+
+Bug fixes:
+- Fixed `h3 pentest`, which failed with "Cannot query field 'queue_priority' on type 'Agent'".
+  The query requested a field that does not exist in the h3-gql schema; it has been removed.
+- `h3 run-nodezero --force` now honors `--force` in any position. Previously it was only
+  recognized as the second positional argument, so `h3 run-nodezero --force` (force against the
+  latest pentest) was silently ignored.
+- Fixed per-agent Runner key clobbering: two co-located NodeZero Runners sharing a profile
+  directory both rotated into a single shared `private_key.pem` and overwrote each other's key
+  (last writer wins), breaking credential injection for every agent but the last to rotate.
+  Runner keypairs are now stored per agent (`private_key/<agent_uuid>.pem`), with a fallback to
+  the legacy shared key for not-yet-upgraded co-located Runners.
+
+---------------------------
 2026-08-19: August 19, 2026
 
 NodeZero Runner containers (new):

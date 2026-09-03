@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# usage: h3 op-templates [op-type]
+#
+# @help
+#
+# h3-op-templates: List the pentest (op) templates for the current client account.
+#
+# Usage:
+#     h3 op-templates [op-type]
+#
+# Options:
+#     [op-type]   The template type: "NodeZero" (default) or "ExternalAttack".
+#
+# See also:
+#     h3 op-template <uuid>, h3 run-pentest
+#
+
+json_params=`cat <<HERE
+{"op_type":"$*"}
+HERE
+`
+res=`h3-gql op_templates $json_params`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq '.data.op_templates[]'
+else
+    echo "$res"
+fi
+exit $rc

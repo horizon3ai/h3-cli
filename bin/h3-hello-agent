@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# usage: h3 hello-agent <name>
+#
+# @help
+#
+# h3-hello-agent: Send a hello-world command to a NodeZero Runner.
+#
+# Usage:
+#     h3 hello-runner <name>
+#     h3 hello-agent <name>
+#
+# Description:
+#     Queues a hello-world command for the Runner with the given name.  Useful for
+#     verifying that a Runner is online and polling for commands.
+#
+# Options:
+#     <name>   The name of the Runner to ping.  Required.
+#
+
+json_params=`cat <<HERE
+{"input":{"name":"$*"}}
+HERE
+`
+res=`h3-gql hello_agent $json_params`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq .data.hello_agent
+else
+    echo "$res"
+fi
+exit $rc

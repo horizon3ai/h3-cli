@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# usage: h3 agents
+#
+# @help
+#
+# h3-agents: List the NodeZero Runners in the current client account.
+#
+# Usage:
+#     h3 runners
+#     h3 agents
+#
+# See also:
+#     h3 runner <name>, h3 start-runner, h3 runner-commands <name>
+#
+
+res=`h3-gql agents`
+rc=$?
+if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.agents[]'
+else echo "$res"; fi
+exit $rc

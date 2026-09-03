@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# usage: h3 save-profile <name> <api-key>
+#
+# @help
+#
+# h3-save-profile: Create or update an h3-cli profile.
+#
+# Usage:
+#     h3 save-profile <name> <api-key>
+#     h3 add-profile <name> <api-key>
+#
+# Description:
+#     Creates (or updates) a profile with the given name and API key.  Profiles
+#     are stored under ~/.h3.  Switch to a profile with '. h3 profile <name>'.
+#
+# Options:
+#     <name>      The profile name.
+#     <api-key>   The Horizon3 API key to store in the profile.
+#
+
+source h3-utils
+profile_name=$1
+api_key=$2
+if [ -z "$H3_CLI_PROFILES_DIR" ]; then
+    H3_CLI_PROFILES_DIR="$HOME/.h3"
+fi
+profile_file="$H3_CLI_PROFILES_DIR/$profile_name.env"
+if [ ! -e "$profile_file" ]; then
+    echoerr "INFO: Creating h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
+    mkdir -p $H3_CLI_PROFILES_DIR
+    cat <<HERE > "$profile_file"
+H3_API_KEY=$api_key
+HERE
+    chmod -R 700 $H3_CLI_PROFILES_DIR
+else
+    mv "$profile_file" "$profile_file.bak"
+    echoerr "INFO: Updating h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
+    cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$api_key/" > "$profile_file"
+fi

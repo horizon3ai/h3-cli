@@ -15,7 +15,32 @@
 # systemctl is-failed nodezero-runner-{name}
 # systemctl list-units
 #
-# 
+#
+
+# @help
+#
+# h3-start-runner-service: Run a NodeZero Runner as a systemd service.
+#
+# Usage:
+#     h3 start-runner-service <name> [log-file]
+#     h3 start-agent-service <name> [log-file]
+#
+# Description:
+#     Installs and starts a NodeZero Runner (a.k.a. agent) as a systemd
+#     service named nodezero-runner-<name>, assigning it the given <name>.
+#     Writes a systemd unit file to /etc/systemd/system, wires in any
+#     docker/podman HTTP proxy settings, reloads systemd, then enables and
+#     starts the service so it runs on boot. Requires systemd; run with
+#     sudo -E (or without sudo) so H3_CLI_PROFILE is preserved.
+#
+# Options:
+#     <name>       Name to assign the Runner (required).
+#     [log-file]   Log file path. Defaults to
+#                  $H3_CLI_LOGGING_DIR/<name>.log (<name> is slugified).
+#
+# See also:
+#     h3 restart-runner-services, h3 tail-runner, h3 start-agent
+#
 
 # bootstrap PATH if needed
 function bootstrap_path {

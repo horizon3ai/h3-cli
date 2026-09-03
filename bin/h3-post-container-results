@@ -26,6 +26,25 @@
 #    recoverable failure into permanent data loss.
 #
 
+# @help
+#
+# h3-post-container-results: Report finished container results to the API.
+#
+# Usage:
+#     h3 post-container-results
+#
+# Description:
+#     Scans the per-run output directory for finished h3 run-container results
+#     (result.json) and posts each to the create_run_spec_result mutation. A
+#     directory is deleted only once the API confirms it stored the result
+#     (accepted: true); any error, status, or network failure keeps it and
+#     retries on the next cycle. Runs automatically at the top of every NodeZero
+#     Runner poll cycle; there is normally no need to invoke it by hand.
+#
+# See also:
+#     h3 run-container, h3 ps-container, h3 log-container
+#
+
 source h3-env
 
 # Ceiling on one create_run_spec_result call.  MANDATORY, not advisory: this script runs

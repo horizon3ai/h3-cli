@@ -12,6 +12,30 @@
 # command), NOT the uuid of whatever the spec targets; this script never opens the payload.
 #
 
+# @help
+#
+# h3-run-container: Fetch a container run spec and launch it detached.
+#
+# Usage:
+#     h3 run-container <run-spec-uuid>
+#
+# Description:
+#     Fetches the run_spec for <run-spec-uuid> from the API and launches it
+#     detached as container h3-<run-spec-uuid>. The container keeps running after
+#     this command exits; it is not waited on. Its result is written to a per-run
+#     output directory that h3 post-container-results collects on a later cycle.
+#     A spec may carry an image (docker run) or a script_url (curl-piped to bash).
+#     Normally invoked by a NodeZero Runner in response to a queued command.
+#
+# Options:
+#     <run-spec-uuid>   uuid of the run_spec (the arg of the queued run-container
+#                       command); must be a well-formed uuid.
+#
+# See also:
+#     h3 ps-container, h3 log-container, h3 stop-container, h3 rm-container,
+#     h3 post-container-results
+#
+
 source h3-env
 
 detect_container_runtime

@@ -1,0 +1,235 @@
+#!/bin/bash
+#
+# usage: h3-help [subcommand]
+#
+# Renders h3-cli help.  The root `h3` script invokes this (as a subprocess)
+# whenever --help/-h is requested or the subcommand is `help`.  Keeping it in
+# its own file lets the root `h3` stay light, and running it as a subprocess
+# lets the help path exit freely without risking the caller's shell on the
+# sourced `. h3 profile` workflow.
+#
+# With no argument (or `help`), prints the top-level overview.  With a
+# subcommand, prints that command's `# @help` block -- WITHOUT sourcing or
+# running the command body, so help is fast, offline, and needs no profile.
+#
+# Each command's help lives in a `# @help` comment block that sits with the
+# script:
+#
+#     # @help
+#     # h3-foo: one-line summary.
+#     # ...
+#
+# A command implemented in its own file (bin/h3-<cmd>) carries a single
+# unnamed block; commands implemented inline in bin/h3 (env/profile/
+# start-agent) tag their block with the command name (`# @help env`) so
+# extract_help can pick the right one out of bin/h3.
+#
+
+# writes message to stderr
+function echoerr {
+    echo "[`date`] $*" 1>&2;
+}
+
+
+function cmd_help {
+    cat <<HERE
+
+h3-cli: A command-line utility for the Horizon3 API.
+
+Usage:
+    h3 <subcommand> [args...]
+
+For details on any subcommand:
+    h3 <subcommand> --help
+    h3 help <subcommand>
+
+------------------------------------------------------------
+Getting started
+------------------------------------------------------------
+    h3 auth                          Authenticate to the H3 API using the current profile's API key.
+    h3 whoami                        Show the user account attached to the current API key.
+    h3 hello-world                   Test basic connectivity with the Horizon3 API.
+    h3 env                           Show the h3-cli environment configuration.
+    h3 version                       Print the h3-cli version.
+    h3 upgrade                       Upgrade h3-cli to the latest version.
+    h3 checkenv                      Check this machine for NodeZero compatibility.
+
+------------------------------------------------------------
+Run a pentest and get the results  (the common workflow)
+------------------------------------------------------------
+    h3 run-pentest-and-nodezero      Provision a pentest and run NodeZero, end to end.
+    h3 run-pentest                   Provision (schedule) a new pentest.
+    h3 run-pentests                  Run multiple pentests consecutively from an input file.
+    h3 run-nodezero                  Download and run NodeZero locally for a pentest.
+    h3 run-nodezero-on-runner        Run NodeZero for a pentest on a Runner.
+    h3 stop-nodezero                 Stop locally-running NodeZero containers.
+    h3 pentests                      List the pentests in your account.
+    h3 pentest                       Show the details of a single pentest.
+    h3 latest-pentest                Show the most recently scheduled pentest in the account.
+    h3 pause-pentest                 Pause a running pentest.
+    h3 resume-pentest                Resume a paused pentest.
+    h3 cancel-pentest                End (cancel) a pentest.
+    h3 delete-pentest                Delete a pentest.
+    h3 archive-pentest               Archive a pentest.
+    h3 unarchive-pentest             Un-archive a pentest.
+    h3 pentest-reports               Download the reports zip for a pentest.
+    h3 weaknesses-stream             Stream all weaknesses from a pentest.
+
+------------------------------------------------------------
+Templates & scoping
+------------------------------------------------------------
+    h3 op-templates                  List the pentest (op) templates for the current client account.
+    h3 op-template                   Show a single pentest (op) template.
+    h3 asset-groups                  List the asset groups in the account.
+    h3 asset-group                   Show a single asset group.
+
+------------------------------------------------------------
+NodeZero Runners  (schedule pentests to run unattended)
+------------------------------------------------------------
+    h3 runners                       List the NodeZero Runners in the current client account.
+    h3 runner                        Show the NodeZero Runner with the given name.
+    h3 runner-commands               Show the Runner with the given name and the last commands it ran.
+    h3 start-runner                  Run a NodeZero Runner as a background process.
+    h3 start-runner-service          Run a NodeZero Runner as a systemd service.
+    h3 runner-services               Show all Runner services registered with systemd on this machine.
+    h3 restart-runner-services       Restart the NodeZero Runner systemd services on this machine.
+    h3 tail-runner                   Tail the log for the Runner on the local machine with the given name.
+    h3 ps-runner                     Show all NodeZero Runner processes on the local machine.
+    h3 stop-runner                   Stop NodeZero Runner process(es) on the local machine.
+    h3 delete-runner                 Delete the Runner with the given name.
+    h3 hello-runner                  Send a hello-world command to a NodeZero Runner.
+    h3 rotate-runner-keys            Rotate a NodeZero Runner's transmission key pair.
+
+------------------------------------------------------------
+Scheduling  (recurring pentests)
+------------------------------------------------------------
+    h3 schedules                     List the schedules in the account and their associated actions.
+    h3 schedule                      Show the schedule with the given name.
+    h3 create-scheduled-action       Create or update a scheduled action.
+    h3 delete-scheduled-action       Delete a scheduled action.
+    h3 trigger-scheduled-action      Trigger a scheduled action now.
+    h3 enable-schedule               Enable a schedule.
+    h3 disable-schedule              Disable a schedule.
+
+------------------------------------------------------------
+Auto-injected credentials  (used by scheduled pentests)
+------------------------------------------------------------
+    h3 auto-injected-credentials     List all auto-injected credentials in the account.
+    h3 create-auto-injected-credential
+                                     Create an auto-injected credential.
+    h3 delete-auto-injected-credential
+                                     Delete an auto-injected credential.
+    h3 delete-auto-injected-credential-secret
+                                     Delete the locally-stored secret for an auto-injected credential.
+    h3 inject-auto-injected-credential
+                                     Inject an auto-injected credential into a pentest op.
+
+------------------------------------------------------------
+Active Directory agent
+------------------------------------------------------------
+    h3 install-ad-agent              Install the Active Directory (AD) agent.
+    h3 uninstall-ad-agent            Uninstall the Active Directory (AD) agent.
+
+------------------------------------------------------------
+Accounts, profiles & users
+------------------------------------------------------------
+    h3 clients                       List the client accounts you have access to.
+    h3 users                         List the users with access to the current client account.
+    h3 profiles                      List the h3-cli profiles (API keys) available under ~/.h3.
+    h3 profile                       Show or set the current h3-cli profile.
+    h3 save-profile                  Create or update an h3-cli profile.
+    h3 delete-profile                Delete an h3-cli profile.
+
+------------------------------------------------------------
+GraphQL API
+------------------------------------------------------------
+    h3 gql                           Run the GraphQL request in the given <graphql-file>.
+    h3 gql-def                       Fetch the GraphQL API schema definition for a schema element.
+    h3 gql-describe                  Run a GraphQL request and describe its JSON response structure.
+    h3 gql-stream                    Stream output from a paginated query in <graphql-file>.
+
+------------------------------------------------------------
+Other
+------------------------------------------------------------
+    h3 utc                           Print the current UTC time.
+
+------------------------------------------------------------
+Internal / advanced  (normally invoked by NodeZero or a Runner, not by hand)
+------------------------------------------------------------
+    h3 cache-secret                  Cache a decrypted agent secret on a NodeZero host.
+    h3 run-command                   Run a queued h3-cli command and report its result.
+    h3 run-container                 Fetch a container run spec and launch it detached.
+    h3 stop-container                Stop a run-container container.
+    h3 rm-container                  Remove a run-container container.
+    h3 log-container                 Show logs for a run-container container.
+    h3 ps-container                  List all H3-managed containers on this host.
+    h3 post-container-results        Report finished container results to the API.
+    h3 gql-resolve-fragments         Inline GraphQL fragment references in a query file.
+
+Notes:
+    - Commands that take an optional [op_id] default to the latest pentest.
+    - For verbose logging: export H3_CLI_VERBOSE=1
+    - GraphQL API docs: https://docs.horizon3ai.com/api/graphql/
+
+Run 'h3 <subcommand> --help' for full details on any subcommand.
+
+HERE
+    return 1
+}
+
+
+# print the `# @help` block from <file>.  With <name>, match the block whose
+# marker names it (`# @help <name>`); without <name>, print the first block
+# regardless of its marker name.  Strips a leading "# " (or a bare "#" -> blank
+# line) from each line.  Returns 1 if no non-empty matching block is found.
+# NOTE: a help *body* line must not itself begin with "@help" -- after the "# "
+# prefix it would look like a marker and be dropped (no current help does this).
+# usage: extract_help <file> [name]
+function extract_help {
+    local file="$1"
+    local want="${2:-}"
+    awk -v want="$want" '
+        /^# ?@help( .*)?$/ {
+            name = $0
+            sub(/^# ?@help */, "", name)
+            sub(/ +$/, "", name)
+            if (want == "" || name == want) { f = 1; found = 1; next }
+            f = 0; next
+        }
+        f && /^#/ { line = $0; sub(/^# ?/, "", line); print line; printed++; next }
+        f { exit }
+        END { if (!found || !printed) exit 1 }
+    ' "$file"
+}
+
+
+# print help for a subcommand, honoring the inline-command exceptions.
+# Locates the sibling command files from this script's own location.
+# usage: dispatch_help <canonical-cmd>
+function dispatch_help {
+    local bindir; bindir=`dirname "$0"`
+    local sub="$1"
+    case "$sub" in
+        env|profile|start-agent)
+            extract_help "$bindir/h3" "$sub" ;;
+        *)
+            local file="$bindir/h3-$sub"
+            if [ ! -f "$file" ]; then
+                echoerr "ERROR: unrecognized command: \"$sub\".  Run \"h3 help\" for usage info."
+                return 1
+            fi
+            extract_help "$file" ;;
+    esac || { echoerr "ERROR: no help available for command: \"$sub\"."; return 1; }
+}
+
+
+# -----------------------------------------------------------
+# entry point:  h3-help [subcommand]
+# -----------------------------------------------------------
+sub=`h3-map-cmd "$1"`
+if [ -z "$sub" -o "$sub" = "help" ]; then
+    cmd_help
+else
+    dispatch_help "$sub"
+fi
+exit $?

@@ -2,7 +2,26 @@
 #
 # Simple shell script for triggering a scheduled action (for testing purposes).
 # 
-# usage: h3-trigger-scheduled-action {schedule-name} {action} 
+# usage: h3-trigger-scheduled-action {schedule-name} {action}
+#
+
+# @help
+#
+# h3-trigger-scheduled-action: Trigger a scheduled action now.
+#
+# Usage:
+#     h3 trigger-scheduled-action <schedule-name> <action>
+#
+# Description:
+#     Immediately triggers the given action on the named schedule, without
+#     waiting for its cron time. Intended for testing scheduled actions.
+#
+# Options:
+#     <schedule-name>   Name of the schedule (required).
+#     <action>          Action to trigger (required).
+#
+# See also:
+#     h3 schedule, h3 create-scheduled-action, h3 delete-scheduled-action
 #
 
 # 0.

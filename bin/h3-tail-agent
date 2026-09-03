@@ -2,7 +2,28 @@
 #
 # Tail the log for a given agent.
 #
-# usage: h3-tail-agent {agent-name} 
+# usage: h3-tail-agent {agent-name}
+#
+
+# @help
+#
+# h3-tail-agent: Tail the log for the Runner on the local machine with the given name.
+#
+# Usage:
+#     h3 tail-runner <name>
+#     h3 tail-agent <name>
+#
+# Description:
+#     Looks up the NodeZero Runner (a.k.a. agent) with the given <name>,
+#     reads the log file registered with it, and tails that log file on the
+#     local machine (tail -n 100 -f). Errors if no log file is registered
+#     with the Runner.
+#
+# Options:
+#     <name>   Name of the Runner whose log to tail (required).
+#
+# See also:
+#     h3 agent, h3 start-runner-service
 #
 
 # 0.

@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# usage: h3 weaknesses-stream [op_id]
+#
+# @help
+#
+# h3-weaknesses-stream: Stream all weaknesses from a pentest.
+#
+# Usage:
+#     h3 weaknesses-stream [op_id]
+#
+# Description:
+#     Streams every weakness from the given pentest, paginating until exhausted.
+#     If op_id is omitted, defaults to the latest pentest.
+#
+#     For a CSV, pipe the output to:
+#         jq -rsf $H3_CLI_HOME/filters/to_csv.jq
+#
+# Options:
+#     [op_id]   The pentest whose weaknesses to stream.  Defaults to the latest pentest.
+#
+
+source h3-env
+json_params=`build_op_id_args $1`
+rc=$?
+if [ $rc -ne 0 ]; then exit $rc; fi
+h3-gql-stream weaknesses .data.weaknesses_page.weaknesses "$json_params"

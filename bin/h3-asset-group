@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# usage: h3 asset-group <uuid>
+#
+# @help
+#
+# h3-asset-group: Show a single asset group.
+#
+# Usage:
+#     h3 asset-group <uuid>
+#
+# Options:
+#     <uuid>   The asset group to show.  Required.  (See: h3 asset-groups)
+#
+
+json_params=`cat <<HERE
+{"uuid":"$*"}
+HERE
+`
+res=`h3-gql asset_group $json_params`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq '.data.asset_group'
+else
+    echo "$res"
+fi
+exit $rc

@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# usage: h3 ps-agent
+#
+# @help
+#
+# h3-ps-agent: Show all NodeZero Runner processes on the local machine.
+#
+# Usage:
+#     h3 ps-runner
+#     h3 ps-agent
+#
+# See also:
+#     h3 runner-services, h3 start-runner, h3 stop-runner
+#
+
+source h3-utils
+ps_agent

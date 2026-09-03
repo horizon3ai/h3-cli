@@ -5,6 +5,29 @@
 # usage: h3-create-scheduled-action {schedule-name} {cron-expression} {action} [{params}]
 #
 
+# @help
+#
+# h3-create-scheduled-action: Create or update a scheduled action.
+#
+# Usage:
+#     h3 create-scheduled-action <schedule-name> <cron-expression> <action> [params]
+#
+# Description:
+#     Creates (or updates) a scheduled action on the named schedule. Supports
+#     hourly-resolution cron. The cron expression uses the format
+#     'min hour day month dow' in UTC; see https://crontab.guru/ for help
+#     building expressions. Use 'h3 utc' to get the current time in UTC.
+#
+# Options:
+#     <schedule-name>     Name of the schedule (required).
+#     <cron-expression>   Cron expression in UTC: 'min hour day month dow' (required).
+#     <action>            Action to run on the schedule (required).
+#     [params]            Optional JSON params for the action (defaults to {}).
+#
+# See also:
+#     h3 schedule, h3 delete-scheduled-action, h3 trigger-scheduled-action, h3 utc
+#
+
 # 0.
 # include common utils
 source h3-env

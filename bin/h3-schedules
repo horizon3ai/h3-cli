@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# usage: h3 schedules
+#
+# @help
+#
+# h3-schedules: List the schedules in the account and their associated actions.
+#
+# Usage:
+#     h3 schedules
+#
+# See also:
+#     h3 schedule <name>, h3 create-scheduled-action, h3 enable-schedule, h3 disable-schedule
+#
+
+res=`h3-gql schedules`
+rc=$?
+if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.schedules[]'
+else echo "$res"; fi
+exit $rc

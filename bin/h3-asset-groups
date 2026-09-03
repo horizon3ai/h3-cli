@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# usage: h3 asset-groups [search]
+#
+# @help
+#
+# h3-asset-groups: List the asset groups in the account.
+#
+# Usage:
+#     h3 asset-groups [search]
+#
+# Options:
+#     [search]   Optionally filter the asset groups by the given search text.
+#
+# See also:
+#     h3 asset-group <uuid>
+#
+
+json_params=`cat <<HERE
+{"search":"$*"}
+HERE
+`
+res=`h3-gql asset_groups $json_params`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq '.data.asset_groups_page.asset_groups[]'
+else
+    echo "$res"
+fi
+exit $rc

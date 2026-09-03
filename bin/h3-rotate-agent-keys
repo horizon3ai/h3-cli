@@ -5,26 +5,71 @@
 # usage: h3-rotate-agent-keys
 #
 
+# @help
+#
+# h3-rotate-agent-keys: Rotate a NodeZero Runner's transmission key pair.
+#
+# Usage:
+#     h3 rotate-runner-keys
+#     h3 rotate-agent-keys
+#
+# Description:
+#     Rotates the RSA key pair used to send sensitive data to the NodeZero
+#     Runner (a.k.a. agent). Generates a new 2048-bit RSA private key (with a
+#     random passphrase), replacing any existing key, then registers the new
+#     public key and passphrase with the server via the update_agent_keys
+#     mutation. Takes no arguments.
+#
+#     When run by a NodeZero Runner (H3_CLI_RUN_BY_RUNNER_UUID is set), the key
+#     is stored per-agent under $H3_CLI_PROFILES_DIR/private_key/<agent_uuid>.pem
+#     and the agent_uuid is sent to the server, so co-located agents sharing a
+#     profile dir do not clobber each other's key. Otherwise it falls back to the
+#     legacy shared path $H3_CLI_PROFILES_DIR/private_key.pem.
+#
+# See also:
+#     h3 agent, h3 agents
+#
+
 # 0.
 # include common utils
 source h3-env
 
 # 1.
+# choose the key path.
+# when run by a runner that set H3_CLI_RUN_BY_RUNNER_UUID, store the key per-agent
+# under private_key/<agent_uuid>.pem so co-located agents sharing a profile dir do
+# not clobber each other's key.  otherwise fall back to the legacy shared path.
+if [ -n "$H3_CLI_RUN_BY_RUNNER_UUID" ]; then
+    key_dir="$H3_CLI_PROFILES_DIR/private_key"
+    mkdir -p "$key_dir"
+    key_path="$key_dir/$H3_CLI_RUN_BY_RUNNER_UUID.pem"
+else
+    key_path="$H3_CLI_PROFILES_DIR/private_key.pem"
+    echoerr "INFO: H3_CLI_RUN_BY_RUNNER_UUID not set; using legacy shared key path $key_path"
+fi
+
+# 2.
 # create key pair with passphrase
-if [ -e "$H3_CLI_PROFILES_DIR/private_key.pem" ]; then
+if [ -e "$key_path" ]; then
     echoerr "INFO: Removing existing private key"
-    rm "$H3_CLI_PROFILES_DIR/private_key.pem"
+    rm "$key_path"
 fi
 passphrase=`head -c 32 /dev/urandom | base64`
-openssl genpkey -algorithm RSA -out "$H3_CLI_PROFILES_DIR/private_key.pem" -pkeyopt rsa_keygen_bits:2048 -pass pass:$passphrase
-public_key=`openssl rsa -pubout -in "$H3_CLI_PROFILES_DIR/private_key.pem" -outform PEM -passin pass:$passphrase`
+openssl genpkey -algorithm RSA -out "$key_path" -pkeyopt rsa_keygen_bits:2048 -pass pass:$passphrase
+public_key=`openssl rsa -pubout -in "$key_path" -outform PEM -passin pass:$passphrase`
 
-
-# 2. 
-# build variables payload
-json_input="{\"input\":{\"public_key\":\"$public_key\",\"private_key_passphrase\":\"$passphrase\"}}"
 
 # 3.
+# build variables payload.
+# include agent_uuid when we know which agent we are (co-located agents share one
+# api key), so the server updates the right agent's public key.
+if [ -n "$H3_CLI_RUN_BY_RUNNER_UUID" ]; then
+    json_input="{\"input\":{\"public_key\":\"$public_key\",\"private_key_passphrase\":\"$passphrase\",\"agent_uuid\":\"$H3_CLI_RUN_BY_RUNNER_UUID\"}}"
+else
+    json_input="{\"input\":{\"public_key\":\"$public_key\",\"private_key_passphrase\":\"$passphrase\"}}"
+fi
+
+# 4.
 # invoke h3-gql
 res=`h3-gql update_agent_keys $json_input`
 rc=$?

@@ -5,6 +5,27 @@
 # usage: h3-gql-def {id} 
 #
 
+# @help
+#
+# h3-gql-def: Fetch the GraphQL API schema definition for a schema element.
+#
+# Usage:
+#     h3 gql-def <id>
+#
+# Description:
+#     Looks up and prints the schema definition for the element named by
+#     <id>. <id> can be a type, field, enum, or enum-value id. Field and
+#     enum-value ids are prefixed with their containing type/enum.
+#     Examples: "Query", "Query.pentests_page", "AuthzRole",
+#     "AuthzRole.ORG_ADMIN". Start with "Query" to explore the schema.
+#
+# Options:
+#     <id>   Schema element id to define.
+#
+# See also:
+#     h3 gql, h3 gql-describe, h3 gql-stream
+#
+
 # 0.
 # include common utils
 source h3-env

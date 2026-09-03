@@ -7,6 +7,26 @@
 # The script will download and execute the AD Agent installation script with the provided API key.
 #
 
+# @help
+#
+# h3-install-ad-agent: Install the Active Directory (AD) agent.
+#
+# Usage:
+#     h3 install-ad-agent <ad_agent_uuid>
+#
+# Description:
+#     Installs an AD Agent identified by <ad_agent_uuid>. Calls the
+#     install_ad_agent mutation to obtain the install script URL and an API
+#     key, downloads the install script (honoring any gateway redirect), and
+#     executes it with the API key.
+#
+# Options:
+#     <ad_agent_uuid>   UUID of the AD Agent to install (required).
+#
+# See also:
+#     h3 uninstall-ad-agent
+#
+
 source h3-env
 
 # 1.

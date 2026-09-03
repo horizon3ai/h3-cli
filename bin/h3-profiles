@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# usage: h3 profiles
+#
+# @help
+#
+# h3-profiles: List the h3-cli profiles (API keys) available under ~/.h3.
+#
+# Usage:
+#     h3 profiles
+#
+# See also:
+#     h3 profile [name], h3 save-profile, h3 delete-profile
+#
+
+source h3-utils
+assert_H3_CLI_PROFILES_DIR
+for x in "$H3_CLI_PROFILES_DIR"/*.env; do
+    [ -e "$x" ] || continue
+    basename "$x" | sed 's/[.]env$//'
+done

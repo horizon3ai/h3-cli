@@ -2,7 +2,26 @@
 #
 # Fetch a specific agent and its commands.
 #
-# usage: h3-agent-commands {agent-name} 
+# usage: h3-agent-commands {agent-name}
+#
+
+# @help
+#
+# h3-agent-commands: Show the Runner with the given name and the last commands it ran.
+#
+# Usage:
+#     h3 runner-commands <name>
+#     h3 agent-commands <name>
+#
+# Description:
+#     Fetches the NodeZero Runner (a.k.a. agent) with the given <name> along
+#     with the most recent commands it has run, and prints the result as JSON.
+#
+# Options:
+#     <name>   Name of the Runner to look up (required).
+#
+# See also:
+#     h3 agent, h3 agents
 #
 
 # 0.

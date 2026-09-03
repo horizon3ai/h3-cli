@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# usage: h3 users
+#
+# @help
+#
+# h3-users: List the users with access to the current client account.
+#
+# Usage:
+#     h3 users
+#     h3 user-accounts
+#
+
+res=`h3-gql user_accounts`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq '.data.user_accounts[]'
+else
+    echo "$res"
+fi
+exit $rc

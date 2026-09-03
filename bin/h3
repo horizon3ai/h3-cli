@@ -1,6 +1,10 @@
 #!/bin/bash
 #
-# usage: see cmd_help below.
+# usage: h3 <subcommand> [args...]
+#
+# For details on any subcommand:
+#   h3 <subcommand> --help
+#   h3 help <subcommand>
 #
 # For verbose tracing: export H3_CLI_VERBOSE=1
 #
@@ -11,7 +15,7 @@ function bootstrap_path {
         if [ -n "$BASH_SOURCE" ]; then s="$BASH_SOURCE"; else s="$0"; fi
         d=`dirname "$s"`
         rc=$?
-        if [ $rc -eq 0 ]; then 
+        if [ $rc -eq 0 ]; then
             PATH="$d:$PATH"
         fi
     fi
@@ -21,326 +25,46 @@ bootstrap_path
 
 # writes message to stderr
 # usage: echoerr "the message"
-function echoerr { 
+function echoerr {
     echo "[`date`] $*" 1>&2;
 }
- 
 
-# writes message to stderr 
+
+# writes message to stderr
 # usage: echolog "the message"
-function echolog { 
+function echolog {
     if [ "$verbose" = "x" ]; then
         echo "[`date`] $*" 1>&2;
     fi
 }
 
 
-function cmd_help {
-    cat <<HERE
+# -----------------------------------------------------------
+# Inline commands.
+#
+# Most subcommands live in their own bin/h3-<cmd> file and are
+# delegated to below.  These few stay inline because they either
+# collide with an internal file name (env, start-agent) or must
+# run in the caller's shell (profile, via '. h3 profile <name>').
+#
+# Their help lives in named `# @help <cmd>` blocks below (rendered
+# by bin/h3-help, which reads them out of this file).
+# -----------------------------------------------------------
 
-h3-cli: A command-line utility for the Horizon3 API.
-
---------------
-General usage: 
-
-h3 hello-world                      # Tests basic connectivity with the Horizon3 API.
-h3 whoami                           # Returns information about the user account attached to the API key.
-h3 pentests [{search}]              # The list of pentests in the account, optionally filtered by {search}.
-h3 pentest [{op_id}]                # The pentest for the given {op_id}, or latest-pentest by default.
-h3 latest-pentest                   # Returns the most recently scheduled pentest in the account.
-h3 run-pentest [{options}]          # Provision a new pentest using the given optional {options}.  
-h3 run-nodezero [{op_id}]           # Download and run NodeZero for the given {op_id}, or latest-pentest by default.
-h3 run-pentest-and-nodezero [{options}] 
-                                    # Combines run-pentest and run-nodezero. Both provisions a new pentest and runs NodeZero on the local machine.
-h3 run-pentests {input-file}        # Reads {options} line-by-line from the given {input-file} and calls h3-run-pentest-and-nodezero {options} for each, consecutively.
-h3 pause-pentest [{op_id}]          # Pauses the given {op_id}, or latest-pentest by default.
-h3 resume-pentest [{op_id}]         # Resumes the given {op_id}, or latest-pentest by default.
-h3 cancel-pentest [{op_id}]         # Ends the given {op_id}, or latest-pentest by default.
-h3 archive-pentest {op_id}          # Archive the given {op_id}
-h3 unarchive-pentest {op_id}        # Un-archive the given {op_id}
-h3 delete-pentest {op_id}           # Delete the given {op_id}. This action cannot be un-done.
-h3 pentest-reports [{op_id}]        # Downloads pentest-reports-{op_id}.zip for the given {op_id}, or latest-pentest by default.
-h3 weaknesses-stream {op_id}        # Streams all weaknesses from the given {op_id}.
-h3 clients [{search}]               # List of client accounts this user has access to, optionally filtered by {search}.
-h3 users                            # List of users with access to the current client account.
-h3 op-templates [{op-type}]         # Pentest templates for the current client account.  op-type can be either "NodeZero" (default) or "ExternalAttack".
-h3 op-template {uuid}               # Pentest template with the given uuid.
-h3 asset-groups [{search}]          # List of asset groups in the account, optionally filtered by {search}.
-h3 asset-group {uuid}               # The asset group with the given uuid.
-h3 auth [force]                     # Authenticate to the API.
-h3 gql {graphql-file} [{vars}]      # Run the GraphQL request in the given {graphql-file}.
-h3 gql-describe {graphql-file} [{vars}]   
-                                    # Run the GraphQL request and describe the JSON response structure using jq -rf filters/to_struct.jq
-h3 gql-stream {graphql-file} {array-field} [{vars}]
-                                    # Streams the output from the paginated query in {graphql-file}. 
-                                    # Streaming continues until {array-field} within the response is empty. 
-                                    # NOTE: {graphql-file} must define (and use) the parameter: $page_input: PageInput 
-                                    # NOTE: for a CSV, pipe the output to: jq -rsf \$H3_CLI_HOME/filters/to_csv.jq
-h3 checkenv                         # Run the checkenv script to check for NodeZero compatibility.
-h3 version                          # The h3-cli version.
-h3 upgrade                          # Upgrade h3-cli to the latest version.
-h3 upgrade ng                       # Upgrade h3-cli to the latest version and use the NodeZero Gateways (NG).
-h3 env                              # List h3-cli environment configuration.
-h3 gql-def {id}                     # Fetch the GraphQL API schema definition for the given schema element {id}. 
-                                    # {id} can be a type, field, enum, or enum value id, eg. "Query", "Query.pentests_page", "AuthzRole", "AuthzRole.ORG_ADMIN".
-                                    # Note that field and enum value ids are always prefixed with their containing type or enum.
-
-
------------------
-NodeZero Runners:
-
-h3 runners                          # List of NodeZero Runners in the current client account.
-h3 runner {name}                    # List the NodeZero Runner with the given {name}.
-h3 runner-commands {name}           # List the NodeZero Runner with the given {name} and the last 5 commands it ran.
-h3 start-runner {name} [{log-file}] # Runs a NodeZero Runner as a background process and assigns it the given {name}.  
-                                    # {log-file} is optional; by default logs to \$H3_CLI_LOGGING_DIR/{name}.log.
-h3 start-runner-service {name} [{log-file}] 
-                                    # Runs a NodeZero Runner as a systemd service and assigns it the given {name}.  
-                                    # {log-file} is optional; by default logs to \$H3_CLI_LOGGING_DIR/{name}.log.
-h3 hello-runner {name}              # Sends a hello-world command to the Runner with the assigned {name}.
-h3 stop-runner [{name}]             # Stops the Runner process with the given {name} on the local machine.
-                                    # If {name} is not provided, then it stops ALL Runner processes on the local machine.
-h3 runner-services                  # Shows all Runner services registered with systemd on the local machine.
-h3 ps-runner                        # Shows all Runner processes on the local machine.
-h3 tail-runner {name}               # Tail the log for the NodeZero Runner on the local machine with the given {name}.
-h3 delete-runner {name}             # Delete the Runner with the given {name}.  This will NOT stop the Runner if it is still running.
-                                    # If a deleted Runner is still running, it will be recreated upon the next heartbeat.
-h3 run-nodezero-on-runner {op_id} {runner_name}
-                                    # Run NodeZero for the given {op_id} on the Runner with the given {runner_name}.
-
-
------------
-Containers:
-
-h3 run-container {uuid}             # Fetch the container run spec for {uuid} and launch it detached as h3-{uuid}.
-                                    # Normally run by a NodeZero Runner in response to a queued command.
-h3 post-container-results           # Report the results of finished h3-{uuid} containers to the API.
-                                    # Runs automatically on each Runner poll cycle; no need to invoke it by hand.
-h3 ps-container                     # Show all H3-managed containers (h3-/n0 prefixes), running or exited.
-h3 log-container {uuid} [{opts}]    # Show logs for container h3-{uuid} (pass -f/--tail N as {opts}).
-h3 stop-container {uuid}            # Stop container h3-{uuid}.
-h3 rm-container {uuid}              # Remove container h3-{uuid}.  Stop it first if it is still running.
-
-
-------------------
-Scheduled actions:
-
-h3 schedules                        # The list of Schedule objects in the account and their associated actions.
-h3 schedule {name}                  # List the Schedule with the given {name}.
-h3 create-scheduled-action {schedule-name} {cron-expression} {action} [{params}]
-                                    # Create or update the given scheduled action.  Supports hourly resolution for the cron-expression.
-                                    # cron-expression format: 'min hour day month dow'
-                                    # cron-expression reference: https://crontab.guru/
-h3 delete-scheduled-action {schedule-name} {action}
-                                    # Delete the given scheduled action.
-h3 trigger-scheduled-action {schedule-name} {action}
-                                    # Trigger the given scheduled action now (for testting purposes).
-h3 enable-schedule {schedule-name}  # Enable the given schedule.
-h3 disable-schedule {schedule-name} # Disable the given schedule.
-h3 utc                              # Prints current UTC time. Scheduled action cron-expressions are specified in UTC time.
-
-
---------------------------
-Auto-Injected Credentials:
-
-h3 create-auto-injected-credential {input} [kubernetes] [namespace] [runner_name]
-                                    # Create an auto-injected credential with the given {input}. 
-                                    # Auto-injected credentials are registered with H3, but are stored locally on this machine 
-                                    # under the ~/.h3 directory.
-                                    # If [kubernetes] is specified, then [namespace] and [runner_name] are required
-                                    # and an AutoInjectedCredential will be created for Kubernetes instead of the local machine.
-                                    # They are used in combination with a NodeZero Runner to auto-inject credentials
-                                    # into a scheduled pentest. See docs for examples.
-h3 inject-auto-injected-credential {uuid} {op_id} 
-                                    # Inject the auto-injected credential with the given {uuid} into the given {op_id}.
-                                    # This command is invoked by the NodeZero Runner for scheduled pentests that 
-                                    # are configured with auto-injected credentials.
-h3 auto-injected-credentials        # Lists all auto-injected credentials in the account.
-h3 delete-auto-injected-credential {uuid} 
-                                    # Delete the auto-injected credential with the given {uuid}. This will send a command to 
-                                    # the NodeZero Runner to delete the credential from the machine or Kubernetes.
-
--------------------------
-Managing h3-cli profiles:
-
-h3 profiles                         # List the h3-cli profiles (API keys) available in the ~/.h3 directory.
-h3 profile                          # Show the current h3-cli profile.
-. h3 profile {name}                 # Set the current h3-cli profile to the profile with the given name.
-h3 save-profile {name} {api-key}    # Create or updates an h3-cli profile with the given name and API key.
-                                    # h3-cli profiles are stored under the ~/.h3 directory.
-h3 delete-profile {name}            # Delete the h3-cli profile with the given name. This will NOT revoke the API key.
-                            
-
-------------
-Other notes:
-
-Defaults to latest-pentest: 
-All commands that take an optional [{op_id}] will default to latest-pentest if an op_id is not specified.
-
-For verbose logging: 
-export H3_CLI_VERBOSE=1
-
-Visit the H3 GraphQL API docsite for more details: 
-https://h3-graphql-docsite.horizon3ai.com/
-
-HERE
-    return 1
-}
-
-
-function cmd_pentest {
-    if [ -z "$*" ]; then 
-        h3 latest_pentest
-        rc=$?
-        return $rc
-    fi
-    res=`h3-gql pentest $*` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq .data.pentest
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_pentests {
-    json_params=`cat <<HERE
-{"search":"$*"}
-HERE
-`
-    res=`h3-gql pentests $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.pentests_page.pentests[] | {op_id, name, state, scheduled_at, completed_at, etl_completed_at, hosts_count, impacts_count, weaknesses_count, credentials_count}'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_asset_groups {
-    json_params=`cat <<HERE
-{"search":"$*"}
-HERE
-`
-    res=`h3-gql asset_groups $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.asset_groups_page.asset_groups[]'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_asset_group {
-    json_params=`cat <<HERE
-{"uuid":"$*"}
-HERE
-`
-    res=`h3-gql asset_group $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.asset_group'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_client_accounts {
-    json_params=`cat <<HERE
-{"search":"$*"}
-HERE
-`
-    res=`h3-gql client_accounts $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.client_accounts_page.client_accounts[]'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_user_accounts {
-    res=`h3-gql user_accounts $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.user_accounts[]'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_op_templates {
-    json_params=`cat <<HERE
-{"op_type":"$*"}
-HERE
-`
-    res=`h3-gql op_templates $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.op_templates[]'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_op_template {
-    json_params=`cat <<HERE
-{"uuid":"$*"}
-HERE
-`
-    res=`h3-gql op_template $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq '.data.op_template'
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_whoami {
-    res=`h3-gql whoami` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq .data.session_user_account
-        rc=$?
-        if [ $rc -ne 0 ]; then
-            echo "$res"
-        fi
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
-function cmd_create_pentest {
-    res=`h3-gql schedule_op_template $*`
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq .data.schedule_op_template.op
-    else
-        echo "$res"
-    fi 
-    return $rc
-}
-
-
+# @help env
+#
+# h3-env: Show the h3-cli environment configuration.
+#
+# Usage:
+#     h3 env
+#
+# Description:
+#     Resolves and prints the environment variables that h3-cli uses, including
+#     the active profile, API key, API URLs, install dir, and logging dir.
+#
+#     These can be overridden by exporting the corresponding environment variable
+#     or by setting it in the active profile under ~/.h3.
+#
 function cmd_env {
     source h3-utils
     ensure_H3_CLI_PROFILES_DIR
@@ -351,35 +75,52 @@ function cmd_env {
     ensure_H3_AUTH_URL
     ensure_H3_GQL_URL
     ensure_H3_CLI_GQL_PATH
-    echo "H3_CLI_HOME=$H3_CLI_HOME" 
-    echo "H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR" 
-    echo "H3_CLI_PROFILE=$H3_CLI_PROFILE" 
-    echo "H3_CLI_GQL_PATH=$H3_CLI_GQL_PATH" 
-    echo "H3_API_KEY=$H3_API_KEY" 
-    echo "H3_AUTH_URL=$H3_AUTH_URL" 
-    echo "H3_GQL_URL=$H3_GQL_URL" 
+    echo "H3_CLI_HOME=$H3_CLI_HOME"
+    echo "H3_CLI_PROFILES_DIR=$H3_CLI_PROFILES_DIR"
+    echo "H3_CLI_PROFILE=$H3_CLI_PROFILE"
+    echo "H3_CLI_GQL_PATH=$H3_CLI_GQL_PATH"
+    echo "H3_API_KEY=$H3_API_KEY"
+    echo "H3_AUTH_URL=$H3_AUTH_URL"
+    echo "H3_GQL_URL=$H3_GQL_URL"
     # hide this option for now.  users should set the system-level http_proxy env var.
-    if [ -n "$H3_CLI_PROXY_URL" ]; then 
-        echo "H3_CLI_PROXY_URL=$H3_CLI_PROXY_URL" 
+    if [ -n "$H3_CLI_PROXY_URL" ]; then
+        echo "H3_CLI_PROXY_URL=$H3_CLI_PROXY_URL"
     fi
     echo "H3_CLI_LOGGING_DIR=$H3_CLI_LOGGING_DIR"
     echo "H3_CLI_RUN_CONTAINER_OUTPUT_DIR=$H3_CLI_RUN_CONTAINER_OUTPUT_DIR"
 }
 
 
-function cmd_profiles {
-    source h3-utils
-    assert_H3_CLI_PROFILES_DIR
-    for x in "$H3_CLI_PROFILES_DIR"/*.env; do
-        [ -e "$x" ] || continue
-        basename "$x" | sed 's/[.]env$//'
-    done
-}
-
-
+# @help profile
+#
+# h3-profile: Show or set the current h3-cli profile.
+#
+# Usage:
+#     h3 profile
+#     . h3 profile <profile-name>
+#
+# Description:
+#     With no argument, prints the name of the current profile.
+#
+#     To SET the current profile, <profile-name> must be given AND the command must
+#     run in the current shell -- prefix it with 'source' or '.' -- so the exported
+#     H3_CLI_PROFILE persists after the command returns:
+#
+#         . h3 profile <profile-name>
+#         source h3 profile <profile-name>
+#
+#     Equivalently, export the profile yourself:
+#
+#         export H3_CLI_PROFILE=<profile-name>; h3 auth force
+#
+#     Profiles (API keys) are stored under ~/.h3.  See also: h3 profiles, h3 save-profile.
+#
+# Options:
+#     <profile-name>   Set the current profile to the given name.
+#
 function cmd_profile {
     set_profile=$1
-    if [ -n "$set_profile" ]; then 
+    if [ -n "$set_profile" ]; then
         export H3_CLI_PROFILE=$set_profile
         jwt=`h3-auth force`
     fi
@@ -389,82 +130,29 @@ function cmd_profile {
 }
 
 
-function cmd_add_profile {
-    profile_name=$1
-    api_key=$2
-    if [ -z "$H3_CLI_PROFILES_DIR" ]; then
-        H3_CLI_PROFILES_DIR="$HOME/.h3"
-    fi
-    profile_file="$H3_CLI_PROFILES_DIR/$profile_name.env"
-    if [ ! -e "$profile_file" ]; then 
-        echoerr "INFO: Creating h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
-        mkdir -p $H3_CLI_PROFILES_DIR
-        cat <<HERE > "$profile_file"
-H3_API_KEY=$api_key
-HERE
-        chmod -R 700 $H3_CLI_PROFILES_DIR
-    else 
-        mv "$profile_file" "$profile_file.bak"
-        echoerr "INFO: Updating h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
-        cat "$profile_file.bak" | sed "s/H3_API_KEY=.*/H3_API_KEY=$api_key/" > "$profile_file"
-    fi
-}
-
-
-function cmd_delete_profile {
-    profile_name=$1
-    if [ -z "$H3_CLI_PROFILES_DIR" ]; then
-        H3_CLI_PROFILES_DIR="$HOME/.h3"
-    fi
-    profile_file="$H3_CLI_PROFILES_DIR/$profile_name.env"
-    profile_file_bak="$H3_CLI_PROFILES_DIR/$profile_name.env.bak"
-    jwt_file="$H3_CLI_PROFILES_DIR/$profile_name.jwt"
-    if [ -e "$profile_file" ]; then 
-        echoerr "INFO: Deleting h3-cli profile $profile_name under $H3_CLI_PROFILES_DIR ..."
-        rm -f "$profile_file" "$jwt_file" "$profile_file_bak"
-    else 
-        echoerr "ERROR: Profile $profile_name does not exist under $H3_CLI_PROFILES_DIR ..."
-    fi
-}
-
-
-function cmd_stop_agent {
-    source h3-utils
-    runner_name=$1
-    if [ -z "$runner_name" ]; then 
-        if is_systemd_running; then 
-            # find and stop all nodezero-runner services
-            # TODO: check if runner service in use via systemctl status 
-            # TODO: check if sudo systemctl will work ?
-            echo sudo systemctl stop 'nodezero-runner*'
-            sudo systemctl stop 'nodezero-runner*'
-            # rc=$?
-            # if [ $rc -eq 0 ]; then 
-            #     # TODO: glob doesn't work for disable.  
-            #     # TODO: maybe just require the runner name? 
-            #     # echo sudo systemctl disable 'nodezero-runner*'
-            #     # sudo systemctl disable 'nodezero-runner*'
-            # fi
-        fi
-    else 
-        if is_systemd_running; then
-            # Must slugify the runner name to match what we do in `h3-start-runner-service`
-            runner_name_slug=`slugify "$runner_name"`
-            
-            service_name="nodezero-runner-$runner_name_slug"
-            echo sudo systemctl stop "$service_name"
-            sudo systemctl stop "$service_name"
-            rc=$?
-            if [ $rc -eq 0 ]; then 
-                echo sudo systemctl disable "$service_name"
-                sudo systemctl disable "$service_name"
-            fi
-        fi
-    fi
-    pkill_agent "$@"
-}
- 
-
+# @help start-agent
+#
+# h3-start-agent: Run a NodeZero Runner as a background process.
+#
+# Usage:
+#     h3 start-runner <name> [log-file]
+#     h3 start-agent <name> [log-file]
+#
+# Description:
+#     Launches a NodeZero Runner (agent) as a detached background process on this
+#     machine and registers it under the given <name>.  The Runner polls the API
+#     for queued commands (eg. scheduled pentests) and executes them locally.
+#
+#     To run the Runner as a systemd service instead, use: h3 start-runner-service
+#
+# Options:
+#     <name>       The name to assign to this Runner.  Required.
+#     [log-file]   Where to write logs.  Defaults to $H3_CLI_LOGGING_DIR/<name>.log
+#                  (<name> is slugified).
+#
+# See also:
+#     h3 runners, h3 tail-runner, h3 stop-runner, h3 start-runner-service
+#
 function cmd_start_agent {
     source h3-env
     agent_name=$1
@@ -483,10 +171,10 @@ function cmd_start_agent {
     # NOTE: this command is dup'ed in h3 and h3-start-agent.
     nohup h3-start-agent "$agent_name" "$log_file" < /dev/null >> "$log_file" 2>&1 &
     rc=$?
-    if [ $rc -eq 0 ]; then 
+    if [ $rc -eq 0 ]; then
         ps_agent
         echoerr "INFO: Stream the NodeZero Runner logs via: h3 tail-runner \"$agent_name\" "
-        if is_systemd_running; then 
+        if is_systemd_running; then
             echoerr "INFO: To register the NodeZero Runner with systemd, use: h3 start-runner-service \"$agent_name\" "
         fi
     fi
@@ -494,217 +182,90 @@ function cmd_start_agent {
 }
 
 
-function cmd_hello_agent {
-    json_params=`cat <<HERE
-{"input":{"name":"$*"}}
-HERE
-`
-    res=`h3-gql hello_agent $json_params` 
-    rc=$?
-    if [ $rc -eq 0 ]; then
-        cat <<<$res | jq .data.hello_agent
-    else
-        echo "$res"
-    fi 
-    return $rc
+# -----------------------------------------------------------
+# --help handling.
+#
+# The overview and the per-command `# @help` block rendering live in
+# bin/h3-help, which the help paths below invoke as a subprocess.  Running
+# it in a subprocess means help can never 'exit' this shell -- important on
+# the sourced '. h3 ...' path -- and keeps this script light.
+# -----------------------------------------------------------
+
+# true if any arg is --help or -h
+function help_requested {
+    for a in "$@"; do
+        if [ "$a" = "--help" -o "$a" = "-h" ]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 
-function cmd_archive_pentest {
-    op_id="$1"
-    is_archived="$2"
-    json_params=`cat <<HERE
-{"op_id":"$op_id","update_op_input":{"is_archived":$is_archived}}
-HERE
-`
-    res=`h3-gql update_op $json_params`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.update_op'
-    else echo "$res"; fi
-    return $rc
-}
-
-
-function cmd_delete_pentest {
-    op_id="$1"
-    json_params=`cat <<HERE
-{"op_id":"$op_id","update_op_input":{"is_deleted":true}}
-HERE
-`
-    res=`h3-gql update_op $json_params`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.update_op'
-    else echo "$res"; fi
-    return $rc
-}
-
-
-# -----------
-# big cmd switch 
-# -----------
+# -----------------------------------------------------------
+# read and normalize the subcommand
+# -----------------------------------------------------------
 cmd=$1
 shift
+cmd=`h3-map-cmd "$cmd"`
 
-cmd=`cat <<<$cmd | sed s/_/-/g`
+
+# -----------------------------------------------------------
+# Detect being sourced (eg. '. h3 profile <name>').  On the help
+# paths below we must not 'exit' when sourced -- that would kill the
+# caller's shell.  When sourced we 'return' (which unwinds the sourced
+# script) instead of 'exit'.  This must be done inline at the script's
+# top level: a 'return' inside a function would only return from that
+# function, not stop the sourced script.
+# -----------------------------------------------------------
+if [ "${BASH_SOURCE[0]}" != "$0" ]; then _H3_SOURCED=1; fi
 
 
-# sed 
-
-if [ -z "$cmd" -o "$cmd" = "help" ]; then
-    cmd_help $*
-
-elif [ "$cmd" = "hello-world" ]; then
-    res=`h3-gql hello_world`
+# -----------------------------------------------------------
+# top-level help:  h3  /  h3 help [subcommand]  /  h3 --help  /  h3 -h
+# -----------------------------------------------------------
+if [ -z "$cmd" -o "$cmd" = "help" -o "$cmd" = "--help" -o "$cmd" = "-h" ]; then
+    h3-help "$1"
     rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq .
-    else echo "$res"; exit $rc; fi
+    if [ -n "$_H3_SOURCED" ]; then return $rc; else exit $rc; fi
+fi
 
-elif [ "$cmd" = "whoami" ]; then
-    cmd_whoami
 
-elif [ "$cmd" = "env" ]; then
-    cmd_env $*
+# -----------------------------------------------------------
+# per-subcommand help:  h3 <subcommand> --help
+# NOTE: this is reached for '. h3 profile --help', so it must not
+# 'exit' when sourced -- see the sourced guard above.  h3-help is a
+# subprocess, so it can exit freely without touching the caller's shell.
+# -----------------------------------------------------------
+if help_requested "$@"; then
+    h3-help "$cmd"
+    rc=$?
+    if [ -n "$_H3_SOURCED" ]; then return $rc; else exit $rc; fi
+fi
 
-elif [ "$cmd" = "profiles" ]; then
-    cmd_profiles $*
+
+# -----------------------------------------------------------
+# run the subcommand
+# -----------------------------------------------------------
+if [ "$cmd" = "env" ]; then
+    cmd_env "$@"
 
 elif [ "$cmd" = "profile" ]; then
-    cmd_profile $*
+    # NOTE: no 'exit' on this path -- it is commonly run as '. h3 profile <name>'
+    # so that the exported H3_CLI_PROFILE persists in the caller's shell.
+    cmd_profile "$@"
 
-elif [ "$cmd" = "add-profile" -o "$cmd" = "save-profile" ]; then
-    cmd_add_profile $*
-
-elif [ "$cmd" = "delete-profile" ]; then
-    cmd_delete_profile $*
-
-elif [ "$cmd" = "pentests" ]; then
-    cmd_pentests $*
-
-elif [ "$cmd" = "pentest" ]; then
-    cmd_pentest $*
-
-elif [ "$cmd" = "latest-pentest" ]; then
-    res=`h3-gql latest_pentest $*`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.pentests_page.pentests[]'
-    else echo "$res"; exit $rc; fi
-
-elif [ "$cmd" = "run-pentest" -o "$cmd" = "schedule-pentest" ]; then
-    cmd_create_pentest $*
-
-elif [ "$cmd" = "launch-nodezero" -o "$cmd" = "run-nodezero" ]; then
-    h3-run-nodezero $*
-
-elif [ "$cmd" = "archive-pentest" ]; then
-    cmd_archive_pentest $* "true"
-
-elif [ "$cmd" = "unarchive-pentest" ]; then
-    cmd_archive_pentest $* "false"
-
-elif [ "$cmd" = "delete-pentest" ]; then
-    cmd_delete_pentest $*
-
-elif [ "$cmd" = "checkenv" ]; then
-    source h3-env
-    run_curl https://downloads.horizon3ai.com/utilities/checkenv.sh | bash
-
-elif [ "$cmd" = "clients" -o "$cmd" = "accounts" -o "$cmd" = "client-accounts" ]; then
-    cmd_client_accounts $*
-
-elif [ "$cmd" = "users" -o "$cmd" = "user-accounts" ]; then
-    cmd_user_accounts $*
-
-elif [ "$cmd" = "op-templates" ]; then
-    cmd_op_templates $*
-
-elif [ "$cmd" = "op-template" ]; then
-    cmd_op_template $*
-
-elif [ "$cmd" = "asset-groups" ]; then
-    cmd_asset_groups $*
-
-elif [ "$cmd" = "asset-group" ]; then
-    cmd_asset_group $*
-
-elif [ "$cmd" = "start-agent" -o "$cmd" = "start-runner" ]; then
+elif [ "$cmd" = "start-agent" ]; then
     cmd_start_agent "$@"
 
-elif [ "$cmd" = "stop-agent" -o "$cmd" = "stop-runner" ]; then
-    cmd_stop_agent "$@"
-
-elif [ "$cmd" = "ps-agent" -o "$cmd" = "ps-runner" ]; then
-    source h3-utils
-    ps_agent
-
-elif [ "$cmd" = "runner-services" ]; then
-    source h3-utils
-    runner_services
-
-elif [ "$cmd" = "hello-agent" -o "$cmd" = "hello-runner" ]; then
-    cmd_hello_agent $*
-
-elif [ "$cmd" = "agents" -o "$cmd" = "runners" ]; then
-    res=`h3-gql agents`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.agents[]'
-    else echo "$res"; exit $rc; fi
-
-elif [ "$cmd" = "agent" -o "$cmd" = "runner" ]; then
-    h3-agent "$@"
-
-elif [ "$cmd" = "agent-commands" -o "$cmd" = "runner-commands" ]; then
-    h3-agent-commands "$@"
-
-elif [ "$cmd" = "tail-agent" -o "$cmd" = "tail-runner" ]; then
-    h3-tail-agent "$@"
-
-elif [ "$cmd" = "run-nodezero-on-agent" -o "$cmd" = "run-nodezero-on-runner" ]; then
-    h3-run-nodezero-on-agent "$@"
-
-elif [ "$cmd" = "delete-agent" -o "$cmd" = "delete-runner" ]; then
-    h3-delete-agent "$@"
-
-elif [ "$cmd" = "schedules" ]; then
-    res=`h3-gql schedules`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.schedules[]'
-    else echo "$res"; exit $rc; fi
-
-elif [ "$cmd" = "utc" ]; then
-    date -u
-
-elif [ "$cmd" = "upgrade" ]; then
-    h3-upgrade "$@"
-
-elif [ "$cmd" = "gql-describe" ]; then
-    source h3-env
-    res=`h3-gql $*`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq
-    else echo "$res"; exit $rc; fi
-
-elif [ "$cmd" = "auto-injected-credentials" ]; then
-    res=`h3-gql auto_injected_credentials`
-    rc=$?
-    if [ $rc -eq 0 ]; then cat <<<$res | jq '.data.auto_injected_credentials[]'
-    else echo "$res"; exit $rc; fi
-
-elif [ "$cmd" = "weaknesses-stream" ]; then
-    source h3-env
-    json_params=`build_op_id_args $1`
-    rc=$?
-    if [ $rc -ne 0 ]; then exit $rc; fi
-    h3-gql-stream weaknesses .data.weaknesses_page.weaknesses "$json_params"
-
-else 
-    # check if the command is defined in the bin directory
+else
+    # delegate to the bin/h3-<cmd> file
     source h3-utils
     assert_H3_CLI_HOME
-    if [ -f "$H3_CLI_HOME/bin/h3-$cmd" ]; then 
-        "$H3_CLI_HOME/bin/h3-$cmd" "$@"   
-    else 
+    if [ -f "$H3_CLI_HOME/bin/h3-$cmd" ]; then
+        "$H3_CLI_HOME/bin/h3-$cmd" "$@"
+    else
         echoerr "ERROR: unrecognized command: \"$cmd\".  Run \"h3 help\" for usage info."
         exit 1
     fi
 fi
-

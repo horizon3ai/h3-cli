@@ -4,6 +4,22 @@
 #
 #
 
+# @help
+#
+# h3-version: Print the h3-cli version.
+#
+# Usage:
+#     h3 version [-v]
+#
+# Description:
+#     Prints the installed h3-cli version from version.txt. With no
+#     argument, prints only the first line (the version number). With
+#     -v (or any argument), prints the full version.txt contents.
+#
+# Options:
+#     -v   Print the full version.txt, not just the version number.
+#
+
 source h3-utils
 assert_H3_CLI_HOME
 if [ -z "$1" ]; then 

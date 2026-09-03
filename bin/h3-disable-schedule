@@ -2,7 +2,24 @@
 #
 # Simple shell script for disabling a schedule.
 # 
-# usage: h3-disable-schedule {schedule-name} 
+# usage: h3-disable-schedule {schedule-name}
+#
+
+# @help
+#
+# h3-disable-schedule: Disable a schedule.
+#
+# Usage:
+#     h3 disable-schedule <schedule-name>
+#
+# Description:
+#     Disables the named schedule so its scheduled actions no longer run.
+#
+# Options:
+#     <schedule-name>   Name of the schedule to disable (required).
+#
+# See also:
+#     h3 schedule, h3 enable-schedule
 #
 
 # 0.

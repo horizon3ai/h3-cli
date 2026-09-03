@@ -17,6 +17,28 @@
 # process substitution.
 #
 
+# @help
+#
+# h3-gql-resolve-fragments: Inline GraphQL fragment references in a query file.
+#
+# Usage:
+#     h3 gql-resolve-fragments <graphql-file>
+#
+# Description:
+#     Internal helper, normally invoked by h3 gql. Reads <graphql-file>
+#     (located on H3_CLI_GQL_PATH), strips comments, and recursively
+#     resolves any unresolved fragment references (spread as ...XxxFragment)
+#     by importing them from their matching <fragment-name>.graphql files
+#     on the path. Fragments already defined in the query file are left
+#     as-is. Prints the fully-resolved query to STDOUT.
+#
+# Options:
+#     <graphql-file>   Query file whose fragments should be resolved.
+#
+# See also:
+#     h3 gql
+#
+
 source h3-env
 
 

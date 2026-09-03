@@ -2,7 +2,25 @@
 #
 # Simple shell script for deleting a scheduled action.
 # 
-# usage: h3-delete-scheduled-action {schedule-name} {action} 
+# usage: h3-delete-scheduled-action {schedule-name} {action}
+#
+
+# @help
+#
+# h3-delete-scheduled-action: Delete a scheduled action.
+#
+# Usage:
+#     h3 delete-scheduled-action <schedule-name> <action>
+#
+# Description:
+#     Deletes the given action from the named schedule.
+#
+# Options:
+#     <schedule-name>   Name of the schedule (required).
+#     <action>          Action to delete from the schedule (required).
+#
+# See also:
+#     h3 schedule, h3 create-scheduled-action, h3 trigger-scheduled-action
 #
 
 # 0.

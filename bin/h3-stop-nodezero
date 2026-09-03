@@ -5,6 +5,22 @@
 # Stops all NodeZero containers running.
 #
 
+# @help
+#
+# h3-stop-nodezero: Stop locally-running NodeZero containers.
+#
+# Usage:
+#     h3 stop-nodezero
+#
+# Description:
+#     Stops all locally-running NodeZero containers (containers whose names match
+#     "n0-") on the detected container runtime (Docker/Podman). Takes no
+#     arguments.
+#
+# See also:
+#     h3 run-nodezero, h3 run-pentest-and-nodezero
+#
+
 source h3-env
 
 detect_container_runtime

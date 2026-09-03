@@ -5,6 +5,25 @@
 # Simple shell script for uninstalling an AD Agent.
 #
 
+# @help
+#
+# h3-uninstall-ad-agent: Uninstall the Active Directory (AD) agent.
+#
+# Usage:
+#     h3 uninstall-ad-agent <ad_agent_uuid>
+#
+# Description:
+#     Uninstalls the AD Agent identified by <ad_agent_uuid>. Calls the
+#     uninstall_ad_agent_config mutation to obtain the uninstall script URL
+#     (honoring any gateway redirect), downloads that script, and executes it.
+#
+# Options:
+#     <ad_agent_uuid>   UUID of the AD Agent to uninstall (required).
+#
+# See also:
+#     h3 install-ad-agent
+#
+
 source h3-env
 
 # 1.

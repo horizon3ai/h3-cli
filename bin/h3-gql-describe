@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# usage: h3 gql-describe <graphql-file> [vars]
+#
+# @help
+#
+# h3-gql-describe: Run a GraphQL request and describe its JSON response structure.
+#
+# Usage:
+#     h3 gql-describe <graphql-file> [vars]
+#
+# Description:
+#     Runs the GraphQL request in <graphql-file> (see: h3 gql) and, instead of
+#     printing the raw response, prints a description of the response's JSON
+#     structure using filters/to_struct.jq.  Handy for discovering the shape of a
+#     query's output.
+#
+# Options:
+#     <graphql-file>   The GraphQL query/mutation to run.
+#     [vars]           Optional JSON variables for the request.
+#
+# See also:
+#     h3 gql, h3 gql-stream, h3 gql-def
+#
+
+source h3-env
+res=`h3-gql $*`
+rc=$?
+if [ $rc -eq 0 ]; then cat <<<$res | jq -rf $H3_CLI_HOME/filters/to_struct.jq
+else echo "$res"; fi
+exit $rc

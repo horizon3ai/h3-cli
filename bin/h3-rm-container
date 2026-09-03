@@ -8,6 +8,26 @@
 # h3 stop-container so a run in flight is never silently killed.
 #
 
+# @help
+#
+# h3-rm-container: Remove a run-container container.
+#
+# Usage:
+#     h3 rm-container <run-spec-uuid>
+#
+# Description:
+#     Removes the container named h3-<run-spec-uuid>. This fails on a
+#     still-running container, which is deliberate -- stop it first with
+#     h3 stop-container so a run in flight is never silently killed.
+#     Normally used to manage containers launched by a NodeZero Runner.
+#
+# Options:
+#     <run-spec-uuid>   uuid of the run_spec whose container to remove.
+#
+# See also:
+#     h3 stop-container, h3 ps-container, h3 log-container
+#
+
 source h3-env
 
 detect_container_runtime

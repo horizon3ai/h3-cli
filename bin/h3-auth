@@ -7,6 +7,29 @@
 #
 #
 
+# @help
+#
+# h3-auth: Authenticate to the H3 API using the current profile's API key.
+#
+# Usage:
+#     h3 auth [force]
+#
+# Description:
+#     Obtains a JWT for the active profile and prints it to STDOUT.
+#     With no argument, returns the cached JWT (from the H3_API_JWT env var
+#     or the profile's .jwt file) if one exists, otherwise authenticates.
+#     'force' always re-authenticates against H3_AUTH_URL, ignoring any
+#     cached JWT. If the profile's configured endpoint fails, auth falls
+#     back through the regional endpoints (EU, then AU) and, on success,
+#     redirects the profile to that region.
+#
+# Options:
+#     force   Re-authenticate even if a cached JWT exists.
+#
+# See also:
+#     h3 gql
+#
+
 # pull in env vars and util fns
 source h3-env 
 

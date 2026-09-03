@@ -2,7 +2,25 @@
 #
 # Fetch a specific schedule.
 #
-# usage: h3-schedule {schedule-name} 
+# usage: h3-schedule {schedule-name}
+#
+
+# @help
+#
+# h3-schedule: Show the schedule with the given name.
+#
+# Usage:
+#     h3 schedule <schedule-name>
+#
+# Description:
+#     Fetches a specific schedule by name and prints its JSON definition,
+#     including its scheduled actions and enabled/disabled state.
+#
+# Options:
+#     <schedule-name>   Name of the schedule to fetch (required).
+#
+# See also:
+#     h3 create-scheduled-action, h3 enable-schedule, h3 disable-schedule
 #
 
 # 0.

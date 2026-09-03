@@ -2,7 +2,27 @@
 #
 # Queues a comand to the given agent/runner to run NodeZero for the given op.
 #
-# usage: h3-run-nodezero-on-agent {op-id} {agent-name} 
+# usage: h3-run-nodezero-on-agent {op-id} {agent-name}
+#
+
+# @help
+#
+# h3-run-nodezero-on-agent: Run NodeZero for a pentest on a Runner.
+#
+# Usage:
+#     h3 run-nodezero-on-runner <op_id> <name>
+#     h3 run-nodezero-on-agent <op_id> <name>
+#
+# Description:
+#     Queues a command to the given Runner (agent) to run NodeZero for the given
+#     op. Both op_id and the Runner/agent name are required.
+#
+# Options:
+#     op_id   The pentest to run.
+#     name    The name of the Runner (agent) to run NodeZero on.
+#
+# See also:
+#     h3 run-nodezero, h3 run-pentest-and-nodezero
 #
 
 # 0.

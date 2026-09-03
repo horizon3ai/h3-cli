@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# usage: h3 clients [search]
+#
+# @help
+#
+# h3-clients: List the client accounts you have access to.
+#
+# Usage:
+#     h3 clients [search]
+#     h3 accounts [search]
+#     h3 client-accounts [search]
+#
+# Options:
+#     [search]   Optionally filter the client accounts by the given search text.
+#
+
+json_params=`cat <<HERE
+{"search":"$*"}
+HERE
+`
+res=`h3-gql client_accounts $json_params`
+rc=$?
+if [ $rc -eq 0 ]; then
+    cat <<<$res | jq '.data.client_accounts_page.client_accounts[]'
+else
+    echo "$res"
+fi
+exit $rc

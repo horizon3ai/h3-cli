@@ -12,6 +12,35 @@
 # 
 
 
+# @help
+#
+# h3-gql-stream: Stream output from a paginated query in <graphql-file>.
+#
+# Usage:
+#     h3 gql-stream <graphql-file> <array-field> [vars]
+#
+# Description:
+#     Repeatedly runs <graphql-file>, incrementing page_num, and streams
+#     the elements of <array-field> from each response to STDOUT.
+#     Streaming continues until <array-field> in the response is empty
+#     (or 99 pages are reached); each page fetches 20 elements. The query
+#     file MUST define and use the
+#     parameter $page_input: PageInput. <array-field> is a jq path to the
+#     result array; a leading ".data" and "." are added if omitted.
+#
+#     For a CSV, pipe to:
+#         jq -rsf $H3_CLI_HOME/filters/to_csv.jq
+#
+# Options:
+#     <graphql-file>   Paginated query file, resolved on H3_CLI_GQL_PATH.
+#     <array-field>    jq path to the array result to stream.
+#     [vars]           Optional JSON variables merged with page_input.
+#
+# See also:
+#     h3 gql, h3 gql-def, h3 gql-describe
+#
+
+
 source h3-env
 
 

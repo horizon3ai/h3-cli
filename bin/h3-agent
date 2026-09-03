@@ -2,7 +2,27 @@
 #
 # Fetch a specific agent.
 #
-# usage: h3-agent {agent-name} 
+# usage: h3-agent {agent-name}
+#
+
+# @help
+#
+# h3-agent: Show the NodeZero Runner with the given name.
+#
+# Usage:
+#     h3 runner <name>
+#     h3 agent <name>
+#
+# Description:
+#     Fetches the NodeZero Runner (a.k.a. agent) registered with the given
+#     <name> and prints its details as JSON. In this product, "Runner" and
+#     "agent" are the same thing.
+#
+# Options:
+#     <name>   Name of the Runner to look up (required).
+#
+# See also:
+#     h3 agents, h3 agent-commands, h3 tail-agent
 #
 
 # 0.

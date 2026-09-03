@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# usage: h3 utc
+#
+# @help
+#
+# h3-utc: Print the current UTC time.
+#
+# Usage:
+#     h3 utc
+#
+# Description:
+#     Scheduled-action cron expressions are specified in UTC; use this to check
+#     the current UTC time when scheduling.
+#
+
+date -u

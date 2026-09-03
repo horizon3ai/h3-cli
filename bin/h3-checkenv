@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# usage: h3 checkenv
+#
+# @help
+#
+# h3-checkenv: Check this machine for NodeZero compatibility.
+#
+# Usage:
+#     h3 checkenv
+#
+# Description:
+#     Downloads and runs the Horizon3 checkenv script, which verifies that this
+#     machine meets the requirements to run NodeZero.
+#
+
+source h3-env
+run_curl https://downloads.horizon3ai.com/utilities/checkenv.sh | bash

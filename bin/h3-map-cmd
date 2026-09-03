@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Map a subcommand (and its aliases) to its canonical command name.
+#
+# usage: h3-map-cmd <cmd>
+#
+# - normalizes underscores to dashes (eg. latest_pentest -> latest-pentest)
+# - maps "runner" aliases to their canonical "agent" spelling (the bin/h3-agent* files)
+# - maps a handful of other historical aliases to their canonical name
+#
+# Unrecognized commands are echoed back unchanged (after underscore normalization).
+#
+
+cmd=`sed 's/_/-/g' <<<"$1"`
+
+case "$cmd" in
+    runner)                     echo "agent" ;;
+    runners)                    echo "agents" ;;
+    start-runner)               echo "start-agent" ;;
+    stop-runner)                echo "stop-agent" ;;
+    ps-runner)                  echo "ps-agent" ;;
+    hello-runner)               echo "hello-agent" ;;
+    runner-commands)            echo "agent-commands" ;;
+    tail-runner)                echo "tail-agent" ;;
+    delete-runner)              echo "delete-agent" ;;
+    run-nodezero-on-runner)     echo "run-nodezero-on-agent" ;;
+    rotate-runner-keys)         echo "rotate-agent-keys" ;;
+    restart-agent-services)     echo "restart-runner-services" ;;
+    start-agent-service)        echo "start-runner-service" ;;
+    accounts|client-accounts)   echo "clients" ;;
+    user-accounts)              echo "users" ;;
+    schedule-pentest)           echo "run-pentest" ;;
+    launch-nodezero)            echo "run-nodezero" ;;
+    add-profile)                echo "save-profile" ;;
+    *)                          echo "$cmd" ;;
+esac

@@ -7,6 +7,33 @@
 #
 
 
+# @help
+#
+# h3-gql: Run the GraphQL request in the given <graphql-file>.
+#
+# Usage:
+#     h3 gql <graphql-file> [vars]
+#
+# Description:
+#     Reads a GraphQL query from <graphql-file>, posts it to the API
+#     (H3_GQL_URL), and writes the JSON response to STDOUT. The file is
+#     located on the search path H3_CLI_GQL_PATH (which includes the
+#     queries/ directory), comments are stripped, and any referenced
+#     fragments are resolved via h3-gql-resolve-fragments.
+#     Authentication is handled automatically, with a retry on expired
+#     or unauthorized tokens.
+#     [vars] is optional: a JSON document of query variables, or a bare
+#     value treated as a single op_id (i.e. {"op_id":"<value>"}).
+#
+# Options:
+#     <graphql-file>   Query file to run, resolved on H3_CLI_GQL_PATH.
+#     [vars]           Optional JSON variables, or a bare op_id.
+#
+# See also:
+#     h3 gql-describe, h3 gql-stream, h3 gql-def
+#
+
+
 source h3-env
 
 

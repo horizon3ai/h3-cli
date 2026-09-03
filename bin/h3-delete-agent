@@ -1,8 +1,31 @@
 #!/bin/bash
 #
-# Queues a comand to the given agent/runner to run NodeZero for the given op.
+# Deletes the NodeZero Runner (agent) with the given name.
 #
-# usage: h3-run-nodezero-on-agent {op-id} {agent-name} 
+# usage: h3-delete-agent {agent-name}
+#
+
+# @help
+#
+# h3-delete-agent: Delete the Runner with the given name.
+#
+# Usage:
+#     h3 delete-runner <name>
+#     h3 delete-agent <name>
+#
+# Description:
+#     Deletes the NodeZero Runner (a.k.a. agent) with the given <name>. If
+#     systemd is running, the associated nodezero-runner-<name> service is
+#     stopped, disabled, and its unit files removed.
+#
+#     Otherwise, this command does NOT stop the Runner if it is still running;
+#     a deleted-but-running Runner will be recreated on its next heartbeat.
+#
+# Options:
+#     <name>   Name of the Runner to delete (required).
+#
+# See also:
+#     h3 agent, h3 agents, h3 stop-agent
 #
 
 # 0.

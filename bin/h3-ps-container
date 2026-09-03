@@ -6,6 +6,23 @@
 # prefix) and NodeZero containers (n0 prefix) -- running or recently exited.
 #
 
+# @help
+#
+# h3-ps-container: List all H3-managed containers on this host.
+#
+# Usage:
+#     h3 ps-container
+#
+# Description:
+#     Lists all H3-managed containers -- both h3 run-container containers (h3-
+#     prefix) and NodeZero containers (n0 prefix) -- running or recently exited,
+#     showing name, status, and image. An empty list is not an error.
+#     Normally used to inspect containers launched by a NodeZero Runner.
+#
+# See also:
+#     h3 log-container, h3 stop-container, h3 rm-container
+#
+
 source h3-env
 
 detect_container_runtime

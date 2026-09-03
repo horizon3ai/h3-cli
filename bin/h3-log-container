@@ -9,6 +9,26 @@
 #   h3 log-container {run-spec-uuid} --tail 100
 #
 
+# @help
+#
+# h3-log-container: Show logs for a run-container container.
+#
+# Usage:
+#     h3 log-container <run-spec-uuid> [opts]
+#
+# Description:
+#     Shows the logs for the container named h3-<run-spec-uuid>. Any additional
+#     opts are passed through to the container runtime's logs command.
+#     Normally used to inspect containers launched by a NodeZero Runner.
+#
+# Options:
+#     <run-spec-uuid>   uuid of the run_spec whose container to log.
+#     opts              passed through to the runtime, e.g. -f, --tail 100.
+#
+# See also:
+#     h3 ps-container, h3 stop-container, h3 rm-container
+#
+
 source h3-env
 
 detect_container_runtime

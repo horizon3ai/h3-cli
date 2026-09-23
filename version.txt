@@ -1,3 +1,20 @@
+2026-09-16: September 16, 2026
+
+Credential Caching Upgrade:
+- Auto-injected credentials created via the portal are no longer limited to roughly 110 characters. Previously the
+  whole credential was encrypted with the Runner's 2048-bit RSA key, which cannot carry more
+  than 190 bytes, so creating a long credential from the Portal or the API failed outright.
+  Session cookies, JWTs and other long `request_credential` secrets now work.
+- Update your Runners to create long credentials against them. `Agent.supports_large_secrets`
+  reports which Runners are ready, and a credential too long for the selected Runner is now
+  rejected up front with a message naming that Runner's limit, instead of failing during
+  encryption.
+
+Bug fixes:
+- `h3 cache-secret` no longer decrypts through a fixed-name temp file. On a busy Runner,
+  overlapping invocations could clobber each other's scratch file mid-read.
+
+---------------------------
 2026-09-02: September 2, 2026
 
 Command help (new):

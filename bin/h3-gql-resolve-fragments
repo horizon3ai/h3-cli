@@ -48,9 +48,11 @@ source h3-env
 # :returns: the remaining set of fragments.  These are the unresolved fragments that need to be imported.
 function find_unresolved_fragments {
     query=`cat`
+    # grep -o emits every match on its own line, so several spreads (or definitions)
+    # on one line are all picked up, not just the last one.
     comm -23 \
-        <(grep -e '[.]\{3\}\S*Fragment' <<<"$query" | sed 's/.*[.][.][.]\(.*Fragment\).*/\1/' | sort | uniq) \
-        <(grep -e 'fragment \S*Fragment' <<<"$query" | sed 's/.*fragment \(.*Fragment\) on.*/\1/g' | sort | uniq)
+        <(grep -oE '[.]{3}[_A-Za-z0-9]+' <<<"$query" | sed 's/^[.]*//' | grep -E 'Fragment$' | sort -u) \
+        <(grep -oE 'fragment[[:space:]]+[_A-Za-z0-9]+[[:space:]]+on' <<<"$query" | awk '{print $2}' | grep -E 'Fragment$' | sort -u)
 }
 
 
